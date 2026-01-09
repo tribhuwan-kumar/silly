@@ -1,0 +1,99 @@
+# Plug 'oysandvik94/curl.nvim'
+
+# tell stopped
+curl -H 
+    'Content-Type:application/json'
+-d '{
+        "jsonrpc":"2.0",
+        "id":"test",
+        "method":"aria2.tellStopped",
+        "params": [0, 100000]
+    }'
+http://localhost:6800/jsonrpc
+
+
+curl -H 
+    'Content-Type:application/json'
+-d '{
+        "jsonrpc":"2.0",
+        "id":"test",
+        "method":"aria2.tellWaiting",
+        "params": [0, 100000]
+    }'
+http://localhost:6800/jsonrpc
+
+# tell acitve
+curl -H 
+    'Content-Type:application/json'
+-d '{
+        "jsonrpc":"2.0",
+        "id":"test",
+        "method":"aria2.tellActive",
+        "params": []
+    }'
+http://localhost:6800/jsonrpc
+
+curl -H 
+    'Content-Type:application/json'
+-d '{
+        "jsonrpc":"2.0",
+        "id":"test",
+        "method":"aria2.getVersion",
+        "params": []
+    }'
+http://localhost:6800/jsonrpc
+
+
+curl -H 
+    'Content-Type:application/json'
+-d '{
+        "jsonrpc":"2.0",
+        "id":"silly",
+        "method":"aria2.tellStatus",
+        "params": [ 
+            "569c48c7f2a0c7a1", 
+            [] 
+        ]
+    }'
+http://localhost:6800/jsonrpc
+
+
+curl -H 
+    'Content-Type:application/json'
+-d '{
+        "jsonrpc":"2.0",
+        "id":"silly",
+        "method":"aria2.getGlobalStat",
+        "params": []
+    }'
+http://localhost:6800/jsonrpc
+
+
+curl -c cookie -H 
+    'Content-Type: application/json'
+-d '{ 
+    "username": "admin",
+    "password": "checkcheck"
+    }'
+http://localhost:8080/api/auth/reg/admin
+
+curl -c cookie -H 
+    'Content-Type: application/json'
+-d '{ 
+    "username": "admin",
+    "password": "helphelp"
+    }'
+http://localhost:8080/api/auth/login
+
+curl -b cookie http://localhost:8080/api/auth/me
+
+curl -b cookie http://localhost:8080/api/auth/user/dl/history
+
+
+curl -b cookie -H 
+    'Content-Type: application/json'
+-d '{ 
+    "uris": "admin",
+    "password": "checkcheck"
+    }'
+http://localhost:8080/api/add/torrents
