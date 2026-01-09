@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    UPDATE download_history \n                    SET name = ?, status = 'paused', total_length = ?, completed_length = ?, \n                        dir = ?, files = ?, info_hash = ?, updated_at = CURRENT_TIMESTAMP\n                    WHERE gid = ?\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "5f5857c3bb47139e5e2330aa183bbe20c63adba5d972c3fe04d8a1cff909c73f"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO download_history (\n                gid, user_id, name, status, dir, files, \n                total_length, completed_length, uploaded_length,\n                source_uri, info_hash, error_code, error_message\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            ON CONFLICT(gid) DO UPDATE SET\n                status = excluded.status,\n                updated_at = CURRENT_TIMESTAMP\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 13
+    },
+    "nullable": []
+  },
+  "hash": "43727d5763ef2105a48c45d0020bcfaf6770d3c785c9fb6131e5390b70860ea3"
+}

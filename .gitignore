@@ -1,0 +1,8 @@
+/target
+/silly_db
+/trash
+*.env
+*.curl
+*cookie
+*.db*
+*.log

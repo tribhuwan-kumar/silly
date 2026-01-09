@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT dir, name FROM download_history WHERE gid = ? AND user_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "dir",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d6ca7c4b4999c404e6a6154bdd5960026dd591e31b532049fcfd87ce1e0a4358"
+}

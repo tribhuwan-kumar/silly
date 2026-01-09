@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE download_history SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE gid = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "418b9a63cd8c0608094e4e0946d5d982e8470907106ee8ae10eb414730803a27"
+}

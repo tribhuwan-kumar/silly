@@ -1,0 +1,7 @@
+@font-face {
+  font-family: 'SF Pro Text';
+  src: url('SF-Pro-Text-Bold.woff') format('woff'),
+       url('SF-Pro-Text-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE download_history \n            SET status = 'error', error_code = ?, error_message = ?, updated_at = CURRENT_TIMESTAMP\n            WHERE gid = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "dba111f30bcd548a1e838e7aa9163f9e7ac0ce43e8e117745d05d73335356035"
+}

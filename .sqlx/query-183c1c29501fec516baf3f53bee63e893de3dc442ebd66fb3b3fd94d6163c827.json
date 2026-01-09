@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE download_history \n            SET name = ?, status = ?, dir = ?, files = ?, \n                total_length = ?, completed_length = ?, uploaded_length = ?,\n                info_hash = ?, error_code = ?, error_message = ?,\n                completed_at = CASE WHEN ? = 'complete' THEN CURRENT_TIMESTAMP ELSE completed_at END,\n                updated_at = CURRENT_TIMESTAMP\n            WHERE gid = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 12
+    },
+    "nullable": []
+  },
+  "hash": "183c1c29501fec516baf3f53bee63e893de3dc442ebd66fb3b3fd94d6163c827"
+}
