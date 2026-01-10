@@ -14,13 +14,12 @@ onMount(async () => {
     goto('/');
   }
 });
-
 </script>
 
 <div class="flex flex-row w-full h-full min-h-svh">
   <SidebarUI.Provider class="w-fit!">
-    <SidebarUI.Trigger class="z-20 m-2 cursor-pointer" />
     <Sidebar />
+    <SidebarUI.Trigger class="z-20 m-2 cursor-pointer" />
   </SidebarUI.Provider>
   <div class="flex min-h-svh w-full flex-col">
     <Navbar />

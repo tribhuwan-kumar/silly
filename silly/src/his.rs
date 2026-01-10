@@ -107,6 +107,8 @@ pub struct GlobalStat {
     pub num_waiting: String,
     #[serde(rename = "numStopped")]
     pub num_stopped: String,
+    #[serde(rename = "numStoppedTotal")]
+    pub num_stopped_total: String,
 }
 
 
@@ -155,7 +157,7 @@ pub struct ItemMetaData {
     /// Directory where its being downloaded
     pub dir: Option<String>,
     /// Acutal path of the content being downloaded
-    /// It can be multiple for torrents, or maybe it should json array
+    /// It can be multiple for torrents; storing json array
     pub files: Option<String>,
     /// Total length of content it gonna download
     pub total_length: Option<String>,
@@ -203,23 +205,25 @@ pub enum DdlWsMessage {
 }
 
 impl Extraction {
-    pub fn extract(json: &Value, gid: &str, fallback_uri: Option<String>) -> ItemMetaData {
+    pub fn extract(json: &Value, gid: &str) -> ItemMetaData {
         let info: Aria2Res = match serde_json::from_value(json.clone()) {
             Ok(v) => v,
             Err(e) => {
                 /* If empty response, return skeleton, something diasater happened */
                 error!("Failed to parse aria2 status for {}: {}", gid, e);
-                return Self::skeleton(gid, fallback_uri);
+                return Self::skeleton(gid);
             }
         };
-
-        let name = Self::resolve_name(&info, &fallback_uri);
+        debug!("extraction info: {:?}", info);
+        let mut source_uri: Option<String> = None;
+        let name = Self::resolve_name(&info);
 
         let file_paths: Vec<String> = info.files.iter()
             .map(|f| f.path.clone())
             .filter(|p| !p.is_empty())
             .collect();
         let files_json = serde_json::to_string(&file_paths).ok();
+        debug!("files json from `extract`: {:?}", files_json);
 
         let status = match info.status.as_str() {
             "active"   => GidStatus::Active,
@@ -238,17 +242,14 @@ impl Extraction {
             _ => GidStatus::Stopped,
         };
 
-        let mut source_uri = fallback_uri;
-        if source_uri.is_none() {
-            if let Some(file) = info.files.first() {
-                // Find first non-empty uri
-                source_uri = file.uris.iter()
-                    .find(|u| !u.uri.is_empty())
-                    .map(|u| u.uri.clone());
-            }
-        }
-
         let is_torrent = info.bittorrent.is_some();
+
+        if let Some(file) = info.files.first() {
+            // Find first non-empty uri
+            source_uri = file.uris.iter()
+                .find(|u| !u.uri.is_empty())
+                .map(|u| u.uri.clone());
+        }
 
         ItemMetaData {
             gid: gid.to_string(),
@@ -261,7 +262,7 @@ impl Extraction {
             uploaded_length: Some(info.upload_length),
             dir: Some(info.dir),
             files: files_json,
-            source_uri,
+            source_uri: source_uri,
             info_hash: info.info_hash,
             error_code: info.error_code.and_then(|c| c.parse().ok()),
             error_message: info.error_message,
@@ -270,14 +271,14 @@ impl Extraction {
         }
     }
 
-    fn resolve_name(info: &Aria2Res, fallback_uri: &Option<String>) -> String {
+    fn resolve_name(info: &Aria2Res) -> String {
         // BitTorrent name metadata exists
-        if let Some(bt) = &info.bittorrent {
-            if let Some(bt_info) = &bt.info {
-                if let Some(n) = &bt_info.name {
-                    if !n.is_empty() { return n.clone(); }
-                }
-            }
+        if let Some(name) = info.bittorrent.as_ref()
+            .and_then(|bt| bt.info.as_ref())
+            .and_then(|bt_info| bt_info.name.as_ref())
+            .filter(|n| !n.is_empty()) 
+        {
+            return name.clone();
         }
 
         /* File system path, file created on disk */
@@ -289,23 +290,23 @@ impl Extraction {
             }
         }
 
-        /* Parse fallback URI (magnet dn / url path) */
-        if let Some(uri) = fallback_uri {
-            if let Ok(u) = Url::parse(uri) {
-                // Magnet link; try 'dn' parameter
-                if u.scheme() == "magnet" {
-                    for (k, v) in u.query_pairs() {
-                        if k == "dn" && !v.trim().is_empty() {
-                            return v.to_string();
+        /* Parse uri (magnet dn / url path) */
+        for file in &info.files {
+            for aria_uri in &file.uris {
+                if let Ok(u) = Url::parse(&aria_uri.uri) {
+                    // Magnet link; try 'dn' parameter
+                    if u.scheme() == "magnet" {
+                        for (k, v) in u.query_pairs() {
+                            if k == "dn" && !v.trim().is_empty() {
+                                return v.into_owned();
+                            }
                         }
                     }
-                } 
-                // http/ftp; try path segment
-                else {
-                    if let Some(s) = u.path_segments().and_then(|seg| seg.last()) {
+                    // http/ftp; try path segment
+                    else if let Some(s) = u.path_segments().and_then(|seg| seg.last()) {
                         if let Ok(d) = urlencoding::decode(s) {
                             if !d.trim().is_empty() {
-                                return d.to_string();
+                                return d.into_owned();
                             }
                         }
                     }
@@ -317,35 +318,19 @@ impl Extraction {
         "<Untitled>".to_string()
     }
 
-    fn skeleton(gid: &str, uri: Option<String>) -> ItemMetaData {
-        let name = if let Some(u) = &uri {
-            u.split('/').last().unwrap_or("<Untitled>").to_string() 
-        } else {
-            "Pending...".to_string()
-        };
-
-        let is_torrent = if let Some(u_str) = &uri  {
-            if let Ok(u) = Url::parse(u_str) {
-                u.scheme() == "magnet" || u.path().to_lowercase().ends_with(".torrent")
-            } else {
-                u_str.to_lowercase().ends_with(".torrent") || u_str.starts_with("magnet:")
-            }
-        } else {
-            false
-        };
-
+    fn skeleton(gid: &str) -> ItemMetaData {
         ItemMetaData {
             gid: gid.to_string(),
-            name: Some(name),
+            name: Some("<Untitled>".to_string()),
             user_id: 0,
-            is_torrent: Some(is_torrent),
+            is_torrent: Some(false),
             status: GidStatus::Waiting,
             total_length: Some("0".into()),
             completed_length: Some("0".into()),
             uploaded_length: Some("0".into()),
             dir: None,
             files: None,
-            source_uri: uri,
+            source_uri: None,
             info_hash: None,
             error_code: None,
             error_message: None,
@@ -361,7 +346,6 @@ impl History {
         state: &AppState,
         gid: &str,
         user_id: i64,
-        uri: &str
     ) -> Result<(), sqlx::Error> {
         // It might be empty, but we pass it to extraction anyway
         let params = vec![serde_json::json!(gid)];
@@ -369,7 +353,7 @@ impl History {
             .await.unwrap_or(serde_json::json!({}));
 
         // Extract with fallback
-        let meta = Extraction::extract(&json, gid, Some(uri.to_string()));
+        let meta = Extraction::extract(&json, gid);
         debug!("meta from `uri_his`: {:?}", meta);
 
         // Insert initial record
@@ -379,13 +363,13 @@ impl History {
     pub async fn torrent_his(
         state: &AppState,
         gid: &str,
-        user_id: i64)
-    -> Result<(), sqlx::Error> {
+        user_id: i64
+    ) -> Result<(), sqlx::Error> {
         let params = vec![serde_json::json!(gid)];
         let json = state.aria2.call("tellStatus", params)
             .await.unwrap_or(serde_json::json!({}));
         
-        let meta = Extraction::extract(&json, gid, None);
+        let meta = Extraction::extract(&json, gid);
         Self::insert_initial(&state.db, user_id, &meta).await
     }
 
@@ -400,9 +384,9 @@ impl History {
                 gid, user_id, name, status, dir, files, 
                 total_length, completed_length, uploaded_length,
                 source_uri, info_hash, is_torrent, error_code, error_message,
-                created_at
+                created_at, completed_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, NULL)
             ON CONFLICT(gid) DO NOTHING
             "#,
             meta.gid, user_id, meta.name, meta.status, meta.dir, meta.files,
@@ -429,6 +413,7 @@ impl HistoryService {
             while let Ok(msg) = rx.recv().await {
                 if let Some(method) = msg.method {
                     // on any aria2 event
+                    debug!("`listend aria2` event: {:?}", method);
                     if method.starts_with("aria2.on") {
                         let gid = msg.params
                             .as_ref()
@@ -452,7 +437,7 @@ impl HistoryService {
         // for active ddls
         let state_p = state.clone();
         tokio::spawn(async move {
-            let mut interval = time::interval(Duration::from_millis(2000));
+            let mut interval = time::interval(Duration::from_millis(500));
             loop {
                 interval.tick().await;
                 Self::tick(&state_p).await;
@@ -463,7 +448,7 @@ impl HistoryService {
     async fn tick(state: &AppState) {
         // Get globalStats
         let global_stat = match state.aria2.call("getGlobalStat", vec![]).await {
-            Ok(json) => serde_json::from_value::<GlobalStat>(json).unwrap_or_default(),           /* this might crash */
+            Ok(json) => serde_json::from_value::<GlobalStat>(json).unwrap_or_default(),
             Err(_) => return,
         };
 
@@ -491,6 +476,7 @@ impl HistoryService {
             if let Some(results) = response.as_array() {
                 // bundle them group result to the `user_id`
                 let mut updates_by_user: HashMap<i64, Vec<Aria2Res>> = HashMap::new();
+
                 for (i, result) in results.iter().enumerate() {
                     let user_id = active_rows[i].user_id;
                     if let Some(status_array) = result.as_array() {
@@ -522,9 +508,14 @@ impl HistoryService {
     }
 
     async fn update_progress(state: &AppState, gid: &str, res: &Aria2Res) {
+        let file_paths: Vec<String> = res.files.iter()
+            .map(|f| f.path.clone())
+            .filter(|p| !p.is_empty())
+            .collect();
+        let files_json = serde_json::to_string(&file_paths).ok();
         let _ = sqlx::query!(
-            "UPDATE download_history SET completed_length = ?, total_length = ?, uploaded_length = ? WHERE gid = ?",
-            res.completed_length, res.total_length, res.upload_length, gid
+            "UPDATE download_history SET files = ?, completed_length = ?, total_length = ?, uploaded_length = ? WHERE gid = ?",
+            files_json, res.completed_length, res.total_length, res.upload_length, gid
         )
             .execute(&state.db)
         .await;
@@ -533,10 +524,9 @@ impl HistoryService {
     async fn sync_init(
         state: AppState,
     ) {
-        // Avoid checking 'complete' or 'removed' items for now
-        // assuming 'active', 'waiting', 'paused' might have changed
+        // check every status, anything can be changed
         let incomplete_gids = sqlx::query!(
-            "SELECT gid FROM download_history WHERE status IN ('active', 'waiting', 'paused', 'stopped')"
+            "SELECT gid FROM download_history WHERE status IN ('active', 'waiting', 'paused', 'stopped', 'complete', 'error')"
         )
         .fetch_all(&state.db)
         .await
@@ -569,18 +559,30 @@ impl HistoryService {
                             if let Some(status_array) = result.as_array() {
                                 if let Some(status_info) = status_array.first() {
                                     // if gid found. update db with fresh info
-                                    let mut meta = Extraction::extract(status_info, gid, None);
+                                    debug!("status infos from `sync_init`: {:?}", status_info);
+                                    let mut meta = Extraction::extract(status_info, gid);
                                     Self::upsert_db(&state, &mut meta).await;
                                 }
-                            } else if result.get("faultCode").is_some() {
+                            } else if let Some(error_val) = result.get("error") {
                                 // this means it was purged from memory or removed externally
                                 // mark it as 'removed' and don't check it again
                                 // Fix: delete that prealloc file too
-                                warn!("gid {} not found in aria2. marking as removed.", gid);
-                                let _ = sqlx::query!(
-                                    "UPDATE download_history SET status = 'removed' WHERE gid = ?", 
-                                    gid
-                                ).execute(&state.db).await;
+                                let error_code = error_val.get("code").and_then(|v| v.as_i64());
+                                match error_code {
+                                    Some(1) => {
+                                        warn!("gid '{}' not found in aria2 (code 1). marking as error", gid);
+                                        let _ = sqlx::query!(
+                                            "UPDATE download_history SET status = 'error', error_code = 1, error_message = 'Session lost' WHERE gid = ?", 
+                                            gid
+                                        ).execute(&state.db).await;
+                                    },
+                                    Some(code) => {
+                                        error!("aria2 error for gid {}: code {}, msg: {:?}", gid, code, error_val.get("message"));
+                                    },
+                                    None => {
+                                        error!("malformed error response for gid {}: {:?}", gid, result);
+                                    }
+                                }
                             }
                         }
                     }
@@ -595,9 +597,10 @@ impl HistoryService {
         state: &AppState,
         gid: String, 
     ) {
+        info!("refreshing gid: {:?}", gid);
         let params = vec![serde_json::json!(gid)];
         if let Ok(info) = state.aria2.call("tellStatus", params).await {
-            let mut meta = Extraction::extract(&info, &gid, None);
+            let mut meta = Extraction::extract(&info, &gid);
             Self::upsert_db(state, &mut meta).await;
         }
     }
@@ -609,11 +612,11 @@ impl HistoryService {
             r#"
             UPDATE download_history 
             SET 
-                name = CASE WHEN ?1 = '<Untitled>' OR ?1 = 'Pending...' THEN name ELSE COALESCE(?1, name) END,
+                name = CASE WHEN ?1 = '<Untitled>' THEN name ELSE COALESCE(?1, name) END,
                 status = ?, dir = ?, files = ?, 
                 total_length = ?, completed_length = ?, uploaded_length = ?,
                 info_hash = ?, is_torrent = ?, error_code = ?, error_message = ?,
-                completed_at = CASE WHEN status != 'complete' AND ? = 'complete' THEN CURRENT_TIMESTAMP ELSE completed_at END,
+                completed_at = CASE WHEN ? = 'complete' THEN COALESCE(completed_at, CURRENT_TIMESTAMP) ELSE NULL END,
                 updated_at = CURRENT_TIMESTAMP
             WHERE gid = ?
             RETURNING user_id, created_at, completed_at
@@ -639,7 +642,7 @@ impl HistoryService {
                 let _ = state.history_tx.send(msg);
             },
             Ok(None) => {
-                warn!("Received aria2 update for unknown gid: {}, weird error", meta.gid);
+                warn!("Received aria2 update for unknown gid: {:?}, download: {:?} weird error", meta.gid, meta.name);
             },
             Err(e) => error!("Database update failed: {}", e),
         }
@@ -686,7 +689,7 @@ pub async fn get_history(
             error_message,
             is_torrent,
             created_at as "created_at!",
-            completed_at as "completed_at!"
+            completed_at as "completed_at"
         FROM download_history 
         WHERE user_id = ? 
         ORDER BY created_at DESC 

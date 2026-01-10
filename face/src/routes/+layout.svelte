@@ -7,6 +7,10 @@
   getSysStatus();
 </script>
 
+<svelte:head>
+  <title>Silly....</title>
+</svelte:head>
+
 <div class="app">
   <ModeWatcher />
 	<main>

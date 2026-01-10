@@ -1,11 +1,3 @@
-export type Aria2DownloadStatus = 
-| 'active' 
-| 'waiting' 
-| 'paused' 
-| 'error' 
-| 'complete' 
-| 'removed';
-
 /// Sub-structures for download info
 export interface Aria2Uri {
   uri: string;
@@ -55,7 +47,7 @@ export interface Aria2Server {
 // Result of `tellStatus`
 export interface Aria2Download {
   gid: string;
-  status: Aria2DownloadStatus;
+  status: GidStatus;
   totalLength: string;
   completedLength: string;
   uploadLength: string;
@@ -78,16 +70,6 @@ export interface Aria2Download {
   bittorrent?: Aria2BitTorrentInfo;
   verifiedLength?: string;
   verifyIntegrityPending?: string;              /* 'true' | 'false' */
-}
-
-/// Result of `getGlobalStat`
-export interface Aria2GlobalStat {
-  downloadSpeed: string;
-  uploadSpeed: string;
-  numActive: string;
-  numWaiting: string;
-  numStopped: string;
-  numStoppedTotal: string;
 }
 
 /// Result of `getVersion`
@@ -123,14 +105,21 @@ export type Aria2TellBatchParams = [
 ];
 
 /// BOOM everthing is string
-export type GidStatus = 'error' | 'paused' | 'active' | 'waiting' | 'removed' | 'stopped' | 'complete';
+export type GidStatus = 
+'error' |
+'paused' |
+'active' |
+'waiting' |
+'removed' |
+'stopped' |
+'complete';
 
 export interface ItemMetaData {
   gid: string;
   name: string | null;
   status: GidStatus;
   dir: string | null;
-  files: string | null; /* json string */
+  files: string | null;             /* json string */
   totalLength: string | null;
   completedLength: string | null;
   uploadedLength: string | null;
@@ -138,6 +127,7 @@ export interface ItemMetaData {
   infoHash: string | null;
   errorCode: number | null;
   errorMessage: string | null;
+  isTorrent: boolean | null;
   createdAt: string;
   completedAt: string;
   downloadSpeed?: string;
@@ -154,14 +144,17 @@ export interface HistoryResponse {
   };
 }
 
+/// Result of `getGlobalStat`
 export interface GlobalStat {
   downloadSpeed: string;
-  uploadSpeed: string;
   numActive: string;
-  numWaiting: string;
   numStopped: string;
+  numStoppedTotal: string,
+  numWaiting: string;
+  uploadSpeed: string,
 }
 
+/// the type of task would be the `Aria2Download` 
 export type WsMessage = 
-  | { type: 'tick'; global: GlobalStat; tasks: any[] }
+  | { type: 'tick'; global: GlobalStat; tasks: Aria2Download[] }
   | { type: 'event'; data: ItemMetaData };

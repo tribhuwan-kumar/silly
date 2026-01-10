@@ -10,7 +10,6 @@ use axum::{
     },
 };
 use tower_http::cors::CorsLayer;
-use tracing::{debug};
 
 use crate::{web, api, his, his::DdlWsMessage, aria2, auth, app::AppState, auth::types::AuthenticatedUser}; 
 
@@ -92,7 +91,6 @@ async fn history(
 ) {
     let mut rx = state.history_tx.subscribe();
     while let Ok(msg) = rx.recv().await {
-        debug!("`history ws` metadata: {:?}", msg);
         match msg {
             DdlWsMessage::Tick { user_id, global, tasks } => {
                 if user_id == user.id {
@@ -161,3 +159,4 @@ pub fn routes(state: AppState) -> Router {
         .layer(CorsLayer::permissive()) // FIX: later fix this
         .with_state(state)
 }
+

@@ -48,15 +48,14 @@ pub async fn add_uris(
         Ok(gids) => {
             info!("addind gids: {:?}", gids);
             if let Some(arr) = gids.as_array() {
-                for (i, res) in arr.iter().enumerate() {
+                for (_i, res) in arr.iter().enumerate() {
                     let gid = res.as_array()
                         .and_then(|g| g.first())
                         .and_then(|v| v.as_str());
                     if let Some(gid) = gid {
                         info!("gid: {:?}", gid);
-                        let source_uri = payload.uris.get(i).cloned().unwrap_or_default();
                         /* FIX: spawn later, await is okay now */
-                        if let Err(e) = History::uri_his(&state, gid, user.id, &source_uri).await {
+                        if let Err(e) = History::uri_his(&state, gid, user.id).await {
                             error!("Failed to create history for user {}, role {}: {}", user.username, user.role, e);
                         }
                     }

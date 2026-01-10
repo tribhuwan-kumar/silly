@@ -7,16 +7,14 @@
     X, 
     CircleCheck 
   } from '@lucide/svelte';
-  import { selectedGids, clearSelection } from '$lib/aria2/client';
-  import { Button } from "$lib/components/ui/button";
-  import { Separator } from "$lib/components/ui/separator";
-  import ThemeToggle from '@/components/ThemeToggle.svelte';
   import AddDl from '$lib/components/AddDl.svelte';
-
-  let addDialogOpen = false;
+  import { Button } from "$lib/components/ui/button";
+  import { selectedGids, clearSelection } from '$lib/aria2/client';
 
   $: count = $selectedGids.length;
   $: hasSelection = count > 0;
+
+  let addDialogOpen = false;
 
   function handleAdd() {
       addDialogOpen = true;
@@ -41,21 +39,19 @@
 
 <div class="bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-10 w-full">
   <div class="flex justify-end float-right h-12 items-center px-4 gap-2">
-    
     <Button 
       onclick={handleAdd}
-      class="gap-2"
+      class="cursor-pointer"
       size="icon" 
       variant="ghost"
       title="Add downloads"
     >
       <Plus class="h-4 w-4 text-muted-foreground" />
     </Button>
-
-    <AddDl bind:open={addDialogOpen} />
-
-    <Separator orientation="vertical" class="h-6 mx-2" />
-
+    <AddDl
+      bind:open={addDialogOpen}
+      onclose={() => addDialogOpen = false}
+    />
     <div class="flex items-center gap-1">
       <Button 
         variant="ghost" 
@@ -64,9 +60,8 @@
         onclick={handleStart}
         title="Start Selected"
       >
-        <Play class="h-4 w-4 {hasSelection ? 'text-green-500' : 'text-muted-foreground'}" />
+        <Play class="h-4 w-4 text-muted-foreground" />
       </Button>
-
       <Button 
         variant="ghost" 
         size="icon" 
@@ -74,9 +69,8 @@
         onclick={handleStop}
         title="Pause Selected"
       >
-        <Pause class="h-4 w-4 {hasSelection ? 'text-orange-500' : 'text-muted-foreground'}" />
+        <Pause class="h-4 w-4 text-muted-foreground" />
       </Button>
-
       <Button 
         variant="ghost" 
         size="icon" 
@@ -84,28 +78,8 @@
         onclick={handleRemove}
         title="Remove Selected"
       >
-        <Trash2 class="h-4 w-4 {hasSelection ? 'text-red-600' : 'text-muted-foreground'}" />
+        <Trash2 class="h-4 w-4 text-muted-foreground" />
       </Button>
-
-      <Separator orientation="vertical" class="h-6 mx-2" />
-
-      <ThemeToggle
-        size="icon"
-        variant="ghost"
-        class="text-muted-foreground" 
-      />
-    </div>
-
-    <div class="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
-      {#if hasSelection}
-        <div class="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full animate-in fade-in zoom-in duration-200">
-           <CircleCheck class="h-3 w-3" />
-           <span class="font-medium">{count} Selected</span>
-           <button onclick={clearSelection} class="ml-2 hover:bg-primary/20 rounded-full p-0.5">
-             <X class="h-3 w-3" />
-           </button>
-        </div>
-      {/if}
     </div>
   </div>
 </div>

@@ -51,7 +51,7 @@ curl -H
         "id":"silly",
         "method":"aria2.tellStatus",
         "params": [ 
-            "569c48c7f2a0c7a1", 
+            "6610488d133b0f90", 
             [] 
         ]
     }'
@@ -81,7 +81,7 @@ curl -c cookie -H
     'Content-Type: application/json'
 -d '{ 
     "username": "admin",
-    "password": "helphelp"
+    "password": "checkcheck"
     }'
 http://localhost:8080/api/auth/login
 
@@ -89,7 +89,26 @@ curl -b cookie http://localhost:8080/api/auth/me
 
 curl -b cookie http://localhost:8080/api/auth/user/dl/history
 
+# create a user
+curl -c cookie -H 
+    'Content-Type: application/json'
+-d '{ 
+    "username": "hero",
+    "password": "helphelp",
+    "requester_username": "admin"
+    }'
+http://localhost:8080/api/auth/user/create
 
+# login
+curl -c cookie -H 
+    'Content-Type: application/json'
+-d '{ 
+    "username": "hero",
+    "password": "helphelp"
+    }'
+http://localhost:8080/api/auth/login
+
+# add torrents
 curl -b cookie -H 
     'Content-Type: application/json'
 -d '{ 
@@ -97,3 +116,4 @@ curl -b cookie -H
     "password": "checkcheck"
     }'
 http://localhost:8080/api/add/torrents
+

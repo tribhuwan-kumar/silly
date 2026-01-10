@@ -1,67 +1,137 @@
 import { toast } from "svelte-sonner";
-import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
-import type { Aria2Download, Aria2GlobalStat } from './types';
-
-export const connectionState = writable<
-'disconnected'
-| 'connecting' 
-| 'connected'
->('disconnected');
-
-export const globalStats = writable<Aria2GlobalStat>({
-  downloadSpeed: '0',
-  uploadSpeed: '0',
-  numActive: '0',
-  numWaiting: '0',
-  numStopped: '0',
-  numStoppedTotal: '0'
-});
+import { writable } from 'svelte/store';
+import type { ItemMetaData, GlobalStat, WsMessage, Aria2Download } from './types';
 
 export const selectedGids = writable<string[]>([]);
-export const activeDownloads = writable<Aria2Download[]>([]);
-export const waitingDownloads = writable<Aria2Download[]>([]);
-export const stoppedDownloads = writable<Aria2Download[]>([]);
+export const historyStore = writable<ItemMetaData[]>([]);
+export const connectionState = writable<'disconnected' | 'connecting' | 'connected'>('disconnected');
 
-const SYNC_INTERVAL_MS = 1000;
-let syncInterval: any = null;
-let ws: WebSocket | null = null;
-let retryTimer: any = null;
+export const globalStats = writable<GlobalStat>({
+  downloadSpeed: '0', uploadSpeed: '0', numActive: '0', 
+  numStopped: '0', numStoppedTotal: '0', numWaiting: '0'
+});
+
 
 class Aria2Manager {
+  private ws: WebSocket | null = null;
+  private retryTimer: any = null;
+
+  constructor() {}
+
   connect() {
-    if (!browser || ws) return;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/api/ws`;
+    if (!browser || this.ws) return;
 
-    connectionState.set('connecting');
-    ws = new WebSocket(url);
-
-    ws.onopen = () => {
-      console.log("Listening aria2 events");
-      connectionState.set('connected');
-      this.startLoop();
-    };
-
-    ws.onclose = () => {
-      console.warn("Disconnected from silly");
-      connectionState.set('disconnected');
-      this.stopLoop();
-      ws = null;
-      clearTimeout(retryTimer);
-      retryTimer = setTimeout(() => this.connect(), 3000);
-    };
-
-    ws.onmessage = (event) => {
-      this.syncDashboard();
-    };
-  }
-
-  async syncDashboard() {
-    // connect WebSocket directly and keep syncing the syncDashboard
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/ws/dl/history`;
+    const url = `${protocol}//${host}/api/ws/dl/history`;
+
+    connectionState.set('connecting');
+    this.ws = new WebSocket(url);
+
+    this.ws.onopen = () => {
+      console.log("Connected to history Stream");
+      connectionState.set('connected');
+    };
+
+    this.ws.onclose = () => {
+      console.warn("History stream disconnected");
+      connectionState.set('disconnected');
+      this.ws = null;
+      clearTimeout(this.retryTimer);
+      this.retryTimer = setTimeout(() => this.connect(), 5000);
+    };
+
+    this.ws.onmessage = (event) => this.handleMessage(event);
+  }
+
+  private handleMessage(event: MessageEvent) {
+    try {
+      const msg: WsMessage = JSON.parse(event.data);
+
+      if (msg.type === 'tick') {
+        globalStats.set(msg.global);
+
+        const tasks = msg.tasks;
+        console.log("tasks:", tasks);
+        historyStore.update(items => {
+          return items.map(item => {
+            const update = tasks.find(t => t.gid === item.gid);
+            if (update) {
+              return {
+                ...item,
+                status: update.status,
+                totalLength: update.totalLength,
+                completedLength: update.completedLength,
+                uploadedLength: update.uploadLength,
+                downloadSpeed: update.downloadSpeed,
+                uploadSpeed: update.uploadSpeed
+              };
+            }
+            return item;
+          });
+        });
+
+      } else if (msg.type === 'event') {
+        this.handleEvent(msg.data);
+      }
+    } catch (e) {
+      console.error("WS error", e);
+    }
+  }
+
+  private handleEvent(newItem: ItemMetaData) {
+    historyStore.update(items => {
+      const index = items.findIndex(i => i.gid === newItem.gid);
+      if (index !== -1) {
+        const updated = [...items];
+        updated[index] = { ...updated[index], ...newItem };
+        return updated;
+      } else {
+        return [newItem, ...items];
+      }
+    });
+  }
+
+  async loadInitialData(page = 1) {
+    try {
+      const res = await fetch(`/api/auth/user/dl/history?page=${page}&limit=15`);
+      const json = await res.json();
+      if(json.data) historyStore.set(json.data);
+      return json;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  async delete(gids: string[], deleteFile: boolean) {
+    try {
+      await fetch('/api/auth/user/history/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gids, delete_file: deleteFile }) // Snake case for backend
+      });
+
+      historyStore.update(items => items.filter(i => !gids.includes(i.gid)));
+      selectedGids.set([]); // Clear selection
+      toast.success(`Deleted ${gids.length} items`);
+    } catch (e) {
+      toast.error("Delete failed");
+    }
+  }
+
+  async retry(uri: string) {
+    try {
+      await fetch('/api/aria2/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uris: [uri] })
+      });
+      toast.success("Retrying download...");
+    } catch(e) {
+      toast.error("Retry failed");
+    }
   }
 
   /*
@@ -85,8 +155,7 @@ class Aria2Manager {
       richColors: true,
       style: "cursor: pointer;"
     });
-
-    this.syncDashboard();
+    await this.loadInitialData(1);
     return await res.json();
   }
 
@@ -112,8 +181,7 @@ class Aria2Manager {
       richColors: true,
       style: "cursor: pointer;"
     });
-
-    this.syncDashboard();
+    await this.loadInitialData(1);
     return await res.json();
   }
 
@@ -123,7 +191,6 @@ class Aria2Manager {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ gid }) 
     });
-    this.syncDashboard();
   }
 
   async resume(gid: string) {
@@ -132,7 +199,6 @@ class Aria2Manager {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ gid }) 
     });
-    this.syncDashboard();
   }
 
   async remove(gid: string) {
@@ -141,35 +207,23 @@ class Aria2Manager {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ gid }) 
     });
-    this.syncDashboard();
-  }
-
-  private startLoop() {
-    this.syncDashboard();
-    if (!syncInterval) {
-      syncInterval = setInterval(() => this.syncDashboard(), SYNC_INTERVAL_MS);
-    }
-  }
-
-  private stopLoop() {
-    if (syncInterval) {
-      clearInterval(syncInterval);
-      syncInterval = null;
-    }
   }
 }
-
 
 export const aria2 = new Aria2Manager();
 
 export function toggleSelection(gid: string) {
   selectedGids.update(current => {
-    if (current.includes(gid)) {
-      return current.filter(id => id !== gid);
-    } else {
-      return [...current, gid];
-    }
+    if (current.includes(gid)) return current.filter(id => id !== gid);
+    return [...current, gid];
   });
+}
+
+export function selectExclusive(gid: string) {
+    selectedGids.update(current => {
+        if (current.length === 1 && current[0] === gid) return [];
+        return [gid];
+    });
 }
 
 export function clearSelection() {
