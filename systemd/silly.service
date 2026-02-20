@@ -7,10 +7,12 @@ ConditionPathExists=/home/trash/music
 [Service]
 User=root
 Group=root
-Type=notify
+Type=simple
+CPUQuota=80%
 PermissionsStartOnly=true
 AmbientCapabilities=CAP_NET_BIND_SERVICE
-CPUQuota=80%
+Environment="FFMPEG=/usr/bin/ffmpeg"
+Environment="FFPROBE=/usr/bin/ffprobe"
 
 MemoryMax=30%
 MemorySwapMax=50%
