@@ -10,7 +10,7 @@ Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) t
 
 ## SystemD
 
-```
+```bash
 # check the arch
 curl -LJO https://github.com/tribhuwan-kumar/silly/releases/download/v1.3.0/silly-linux-aarch64
 chmod +x silly-linux-aarch64
