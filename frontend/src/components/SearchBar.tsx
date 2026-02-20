@@ -246,7 +246,7 @@ const getRegionName = (code: string) => {
   }
 };
 type ResultTab = "tracks" | "albums" | "artists" | "playlists";
-const RECENT_SEARCHES_KEY = "spotiflac_recent_searches";
+const RECENT_SEARCHES_KEY = "silly_recent_searches";
 const MAX_RECENT_SEARCHES = 8;
 const SEARCH_LIMIT = 50;
 interface SearchBarProps {

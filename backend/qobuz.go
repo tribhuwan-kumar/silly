@@ -552,7 +552,7 @@ func (q *QobuzDownloader) DownloadTrackWithISRC(deezerISRC, spotifyID, outputDir
 		URL:         spotifyURL,
 		Copyright:   spotifyCopyright,
 		Publisher:   spotifyPublisher,
-		Description: "https://github.com/afkarxyz/SpotiFLAC",
+		Description: "https://github.com/afkarxyz/Silly",
 		ISRC:        deezerISRC,
 	}
 

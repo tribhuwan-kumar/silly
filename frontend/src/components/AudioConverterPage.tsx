@@ -47,7 +47,7 @@ const M4A_CODEC_OPTIONS = [
   { value: "alac", label: "ALAC" },
 ];
 
-const STORAGE_KEY = "spotiflac_audio_converter_state";
+const STORAGE_KEY = "silly_audio_converter_state";
 
 export function AudioConverterPage() {
   const [files, setFiles] = useState<AudioFile[]>(() => {

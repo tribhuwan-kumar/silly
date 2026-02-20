@@ -7,28 +7,26 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"spotiflac/backend"
+	"silly/backend"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
-	// 1. Initialize App Logic & Database
 	app := NewApp()
 	app.startup(context.Background())
 	defer app.shutdown(context.Background())
 
-	// 2. Setup Embedded Frontend FS
 	distFS, err := fs.Sub(assets, "frontend/dist")
 	if err != nil {
 		panic(err)
 	}
 
-	// 3. Create the Registry
+	// Create the registry
 	registry := make(map[string]GenericHandler)
 
-	// --- TYPE 1: Standard Functions (Takes Struct, Returns Data/Error) ---
+	// Standard Functions (Takes Struct, Returns Data/Error)
 	registry["AddToDownloadQueue"] = Wrap(app.AddToDownloadQueue)
 	registry["AnalyzeMultipleTracks"] = Wrap(app.AnalyzeMultipleTracks)
 	registry["AnalyzeTrack"] = Wrap(app.AnalyzeTrack)
@@ -66,7 +64,7 @@ func main() {
 	registry["UploadImage"] = Wrap(app.UploadImage)
 	registry["UploadImageBytes"] = Wrap(app.UploadImageBytes)
 
-	// --- TYPE 2: Void Input Functions (No args, Returns Data/Error) ---
+	// Void Input Functions (No args, Returns Data/Error)
 	registry["CancelAllQueuedItems"] = WrapVoid(app.CancelAllQueuedItems)
 	registry["CheckFFmpegInstalled"] = WrapVoid(app.CheckFFmpegInstalled)
 	registry["ClearAllDownloads"] = WrapVoid(app.ClearAllDownloads)
@@ -88,7 +86,7 @@ func main() {
 	registry["GetUserHomeDir"] = Wrap(app.GetUserHomeDir)
 	registry["GetPathSeparator"] = Wrap(app.GetPathSeparator)
 
-	// Adapter for items that only return data, no error (fake an error return)
+	// Adapter for items that only return data, no error
 	registry["GetDownloadQueue"] = WrapVoid(func() (backend.DownloadQueueInfo, error) {
 		return app.GetDownloadQueue(), nil
 	})
@@ -96,10 +94,10 @@ func main() {
 		return app.GetDownloadProgress(), nil
 	})
 
-	// --- TYPE 3: No Error Return Functions ---
+	// No Error Return Functions
 	registry["DownloadFFmpeg"] = WrapVoidNoErr(app.DownloadFFmpeg)
 
-	// 4. Create Web Server Routes
+	// Web server 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/rpc", func(w http.ResponseWriter, r *http.Request) {
@@ -110,10 +108,10 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "6890"
+		port = "6890" // fixing, fav port :)
 	}
 
-	fmt.Printf("SpotiFLAC Web Server running on http://localhost:%s\n", port)
+	fmt.Printf("Silly web server running on http://localhost:%s\n", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		panic(err)
 	}

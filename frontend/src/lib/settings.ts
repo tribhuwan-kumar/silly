@@ -327,7 +327,7 @@ async function fetchDefaultPath(): Promise<string> {
     return "";
   }
 }
-const SETTINGS_KEY = "spotiflac-settings";
+const SETTINGS_KEY = "silly-settings";
 let cachedSettings: Settings | null = null;
 function getSettingsFromLocalStorage(): Settings {
   try {

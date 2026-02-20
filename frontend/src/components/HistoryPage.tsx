@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { HISTORY_POLL_INTERVAL } from "@/types/api";
 import {
   Trash2,
   ExternalLink,
@@ -131,9 +132,10 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
       }
     };
     loadData();
+    // history load interval
     const interval = setInterval(async () => {
       await loadData();
-    }, 5000);
+    }, HISTORY_POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [activeTab]);
 

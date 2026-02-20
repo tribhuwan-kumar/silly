@@ -46,7 +46,7 @@ import { useCover } from "@/hooks/useCover";
 import { useAvailability } from "@/hooks/useAvailability";
 import { useDownloadQueueDialog } from "@/hooks/useDownloadQueueDialog";
 import { useDownloadProgress } from "@/hooks/useDownloadProgress";
-const HISTORY_KEY = "spotiflac_fetch_history";
+const HISTORY_KEY = "silly_fetch_history";
 const MAX_HISTORY = 5;
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>("main");
@@ -60,10 +60,10 @@ function App() {
   const [fetchHistory, setFetchHistory] = useState<HistoryItem[]>([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [region, setRegion] = useState(
-    () => localStorage.getItem("spotiflac_region") || "US",
+    () => localStorage.getItem("silly_region") || "US",
   );
   useEffect(() => {
-    localStorage.setItem("spotiflac_region", region);
+    localStorage.setItem("silly_region", region);
   }, [region]);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [hasUnsavedSettings, setHasUnsavedSettings] = useState(false);
@@ -173,7 +173,7 @@ function App() {
   const checkForUpdates = async () => {
     try {
       const response = await fetch(
-        "https://api.github.com/repos/tribhuwan-kumar/SpotiFLAC/releases/latest",
+        "https://api.github.com/repos/tribhuwan-kumar/silly/releases/latest",
       );
       const data = await response.json();
       const latestVersion = data.tag_name?.replace(/^v/, "") || "";
@@ -1032,7 +1032,7 @@ function App() {
                 FFmpeg Required
               </DialogTitle>
               <DialogDescription className="text-sm text-foreground/70 leading-relaxed font-normal">
-                FFmpeg is essential for SpotiFLAC to function properly. This
+                FFmpeg is essential for Silly to function properly. This
                 setup will download about{" "}
                 <span className="text-foreground font-semibold">100-200MB</span>{" "}
                 of data.

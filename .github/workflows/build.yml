@@ -76,18 +76,18 @@ jobs:
 
       - name: Compress with UPX
         run: |
-          upx --best --lzma "build\bin\SpotiFLAC.exe"
+          upx --best --lzma "build\bin\Silly.exe"
 
       - name: Prepare artifacts
         run: |
           mkdir -p dist
-          Copy-Item -Path "build\bin\SpotiFLAC.exe" -Destination "dist\SpotiFLAC.exe"
+          Copy-Item -Path "build\bin\Silly.exe" -Destination "dist\Silly.exe"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-portable
-          path: dist/SpotiFLAC.exe
+          path: dist/Silly.exe
           retention-days: 7
 
   build-macos:
@@ -155,23 +155,23 @@ jobs:
 
           # Create DMG
           create-dmg \
-            --volname "SpotiFLAC" \
+            --volname "Silly" \
             --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
-            --icon "SpotiFLAC.app" 175 120 \
-            --hide-extension "SpotiFLAC.app" \
+            --icon "Silly.app" 175 120 \
+            --hide-extension "Silly.app" \
             --app-drop-link 425 120 \
-            "dist/SpotiFLAC.dmg" \
-            "build/bin/SpotiFLAC.app" || \
+            "dist/Silly.dmg" \
+            "build/bin/Silly.app" || \
           # Fallback to hdiutil if create-dmg fails
-          hdiutil create -volname SpotiFLAC -srcfolder build/bin/SpotiFLAC.app -ov -format UDZO dist/SpotiFLAC.dmg
+          hdiutil create -volname Silly -srcfolder build/bin/Silly.app -ov -format UDZO dist/Silly.dmg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-portable
-          path: dist/SpotiFLAC.dmg
+          path: dist/Silly.dmg
           retention-days: 7
 
   build-linux:
@@ -241,7 +241,7 @@ jobs:
 
       - name: Compress with UPX
         run: |
-          upx --best --lzma build/bin/SpotiFLAC
+          upx --best --lzma build/bin/Silly
 
       - name: Cache appimagetool
         id: cache-appimagetool
@@ -266,34 +266,34 @@ jobs:
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
           # Copy binary
-          cp build/bin/SpotiFLAC AppDir/usr/bin/
+          cp build/bin/Silly AppDir/usr/bin/
 
           # Create desktop file
-          cat > AppDir/spotiflac.desktop << 'EOF'
+          cat > AppDir/Silly.desktop << 'EOF'
           [Desktop Entry]
-          Name=SpotiFLAC
-          Exec=SpotiFLAC
-          Icon=spotiflac
+          Name=Silly
+          Exec=Silly
+          Icon=Silly
           Type=Application
           Categories=Audio;AudioVideo;
           Comment=Get Spotify tracks in true FLAC from Tidal/Deezer
           EOF
 
-          cp AppDir/spotiflac.desktop AppDir/usr/share/applications/
+          cp AppDir/Silly.desktop AppDir/usr/share/applications/
 
           # Create icon
           if [ -f "build/appicon.png" ]; then
-            convert build/appicon.png -resize 256x256 AppDir/spotiflac.png
+            convert build/appicon.png -resize 256x256 AppDir/Silly.png
           elif [ -f "frontend/public/icon.svg" ]; then
-            convert -background none -size 256x256 frontend/public/icon.svg AppDir/spotiflac.png
+            convert -background none -size 256x256 frontend/public/icon.svg AppDir/Silly.png
           else
             echo "Warning: No icon found, building without icon"
           fi
 
           # Copy icon if exists
-          if [ -f "AppDir/spotiflac.png" ]; then
-            cp AppDir/spotiflac.png AppDir/usr/share/icons/hicolor/256x256/apps/
-            cp AppDir/spotiflac.png AppDir/.DirIcon
+          if [ -f "AppDir/Silly.png" ]; then
+            cp AppDir/Silly.png AppDir/usr/share/icons/hicolor/256x256/apps/
+            cp AppDir/Silly.png AppDir/.DirIcon
           fi
 
           # Create AppRun
@@ -303,19 +303,19 @@ jobs:
           HERE=${SELF%/*}
           export PATH="${HERE}/usr/bin/:${PATH}"
           export LD_LIBRARY_PATH="${HERE}/usr/lib/:${LD_LIBRARY_PATH}"
-          exec "${HERE}/usr/bin/SpotiFLAC" "$@"
+          exec "${HERE}/usr/bin/Silly" "$@"
           EOF
           chmod +x AppDir/AppRun
 
           # Create AppImage
           mkdir -p dist
-          ARCH=x86_64 ./appimagetool --no-appstream AppDir dist/SpotiFLAC.AppImage
+          ARCH=x86_64 ./appimagetool --no-appstream AppDir dist/Silly.AppImage
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-portable
-          path: dist/SpotiFLAC.AppImage
+          path: dist/Silly.AppImage
           retention-days: 7
 
   create-release:
@@ -354,9 +354,9 @@ jobs:
 
             ## Downloads
 
-            - `SpotiFLAC.exe` - Windows
-            - `SpotiFLAC.dmg` - macOS
-            - `SpotiFLAC.AppImage` - Linux
+            - `Silly.exe` - Windows
+            - `Silly.dmg` - macOS
+            - `Silly.AppImage` - Linux
 
             <details>
             <summary><b>Linux Requirements</b></summary>
@@ -380,8 +380,8 @@ jobs:
 
             After installing the dependency, make the AppImage executable:
             ```bash
-            chmod +x SpotiFLAC.AppImage
-            ./SpotiFLAC.AppImage
+            chmod +x Silly.AppImage
+            ./Silly.AppImage
             ```
 
             </details>

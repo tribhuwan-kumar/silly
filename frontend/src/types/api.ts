@@ -1,3 +1,6 @@
+export const POLL_INTERVAL = 500;
+export const HISTORY_POLL_INTERVAL = 500;
+
 export interface ArtistSimple {
   id: string;
   name: string;

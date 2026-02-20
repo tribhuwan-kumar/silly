@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { POLL_INTERVAL } from "@/types/api";
 import { app } from "@/lib/rpc";
 export interface DownloadProgressInfo {
   is_downloading: boolean;
@@ -22,7 +23,7 @@ export function useDownloadProgress() {
       }
     };
     // later set it correctly
-    intervalRef.current = window.setInterval(pollProgress, 5000);
+    intervalRef.current = window.setInterval(pollProgress, POLL_INTERVAL);
     pollProgress();
     return () => {
       if (intervalRef.current) {

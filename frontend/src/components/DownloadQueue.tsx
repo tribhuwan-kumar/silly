@@ -13,6 +13,7 @@ import {
   FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { POLL_INTERVAL } from "@/types/api";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +54,7 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
     };
     fetchQueue();
     // later set it correctly
-    const interval = setInterval(fetchQueue, 5000);
+    const interval = setInterval(fetchQueue, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [isOpen]);
   const handleClearHistory = async () => {

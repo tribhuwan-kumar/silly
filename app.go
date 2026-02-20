@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"spotiflac/backend"
+	"silly/backend"
 	"strings"
 	"time"
 )
@@ -35,7 +35,7 @@ func (a *App) getFirstArtist(artistString string) string {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	if err := backend.InitHistoryDB("SpotiFLAC"); err != nil {
+	if err := backend.InitHistoryDB("Silly"); err != nil {
 		fmt.Printf("Failed to init history DB: %v\n", err)
 	}
 }
@@ -44,7 +44,6 @@ func (a *App) shutdown(ctx context.Context) {
 	backend.CloseHistoryDB()
 }
 
-// --- Request Struct Definitions ---
 type StreamingURLsReq struct {
 	SpotifyTrackID string `json:"spotify_track_id"`
 	Region         string `json:"region"`
@@ -110,7 +109,6 @@ type CheckExistenceReq struct {
 	Tracks    []CheckFileExistenceRequest `json:"tracks"`
 }
 
-// --- Spotify Metadata Request/Download Logic (Existing logic untouched) ---
 type SpotifyMetadataRequest struct {
 	URL     string  `json:"url"`
 	Batch   bool    `json:"batch"`
@@ -160,8 +158,6 @@ type DownloadResponse struct {
 	AlreadyExists bool   `json:"already_exists,omitempty"`
 	ItemID        string `json:"item_id,omitempty"`
 }
-
-// --- Modified Methods to Accept Single Request Struct ---
 
 func (a *App) GetStreamingURLs(req StreamingURLsReq) (interface{}, error) {
 	if req.SpotifyTrackID == "" {
@@ -244,7 +240,6 @@ func (a *App) SearchSpotifyByType(req SpotifySearchByTypeRequest) ([]backend.Sea
 	return backend.SearchSpotifyByType(ctx, req.Query, req.SearchType, req.Limit, req.Offset)
 }
 
-// DownloadTrack implementation. (Logic untouched, only UI calls stripped)
 func (a *App) DownloadTrack(req DownloadRequest) (DownloadResponse, error) {
 	if req.Service == "qobuz" && req.SpotifyID == "" {
 		return DownloadResponse{Success: false, Error: "Spotify ID is required for Qobuz"}, fmt.Errorf("spotify ID is required for Qobuz")
@@ -484,7 +479,7 @@ func (a *App) DownloadTrack(req DownloadRequest) (DownloadResponse, error) {
 			case "6", "7", "27":
 				item.Format = "FLAC"
 			}
-			backend.AddHistoryItem(item, "SpotiFLAC")
+			backend.AddHistoryItem(item, "Silly")
 		}(filename, req.TrackName, req.ArtistName, req.AlbumName, req.SpotifyID, req.CoverURL, req.AudioFormat)
 	}
 
@@ -581,7 +576,7 @@ func (a *App) ExportFailedDownloads() (ExportFailedResponse, error) {
 	}
 
 	content := strings.Join(failedItems, "\n")
-	defaultFilename := fmt.Sprintf("SpotiFLAC_%s_Failed.txt", time.Now().Format("20060102_150405"))
+	defaultFilename := fmt.Sprintf("Silly%s_Failed.txt", time.Now().Format("20060102_150405"))
 
 	return ExportFailedResponse{
 		Content:  content,
@@ -590,28 +585,28 @@ func (a *App) ExportFailedDownloads() (ExportFailedResponse, error) {
 }
 
 func (a *App) GetDownloadHistory() ([]backend.HistoryItem, error) {
-	return backend.GetHistoryItems("SpotiFLAC")
+	return backend.GetHistoryItems("Silly")
 }
 func (a *App) ClearDownloadHistory() (bool, error) {
-	return true, backend.ClearHistory("SpotiFLAC")
+	return true, backend.ClearHistory("Silly")
 }
 func (a *App) DeleteDownloadHistoryItem(req IDReq) (bool, error) {
-	return true, backend.DeleteHistoryItem(req.ID, "SpotiFLAC")
+	return true, backend.DeleteHistoryItem(req.ID, "Silly")
 }
 func (a *App) GetFetchHistory() ([]backend.FetchHistoryItem, error) {
-	return backend.GetFetchHistoryItems("SpotiFLAC")
+	return backend.GetFetchHistoryItems("Silly")
 }
 func (a *App) AddFetchHistory(item backend.FetchHistoryItem) (bool, error) {
-	return true, backend.AddFetchHistoryItem(item, "SpotiFLAC")
+	return true, backend.AddFetchHistoryItem(item, "Silly")
 }
 func (a *App) ClearFetchHistory() (bool, error) {
-	return true, backend.ClearFetchHistory("SpotiFLAC")
+	return true, backend.ClearFetchHistory("Silly")
 }
 func (a *App) DeleteFetchHistoryItem(req IDReq) (bool, error) {
-	return true, backend.DeleteFetchHistoryItem(req.ID, "SpotiFLAC")
+	return true, backend.DeleteFetchHistoryItem(req.ID, "Silly")
 }
 func (a *App) ClearFetchHistoryByType(req struct{ ItemType string `json:"item_type"` }) (bool, error) {
-	return true, backend.ClearFetchHistoryByType(req.ItemType, "SpotiFLAC")
+	return true, backend.ClearFetchHistoryByType(req.ItemType, "Silly")
 }
 
 func (a *App) AnalyzeTrack(req AnalyzeTrackReq) (*backend.AnalysisResult, error) {

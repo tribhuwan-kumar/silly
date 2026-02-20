@@ -1,14 +1,14 @@
 import { main, backend } from "@/types/models";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 
-// Define the base RPC response structure
+// Base RPC response structure
 interface RPCResponse<T> {
   result?: T;
   error?: string;
 }
 
 /**
- * Core invoker that sends POST requests to your Go server.
+ * Core invoker that sends POST requests
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function invoke<T>(method: string, params: any = {}): Promise<T> {
@@ -44,8 +44,6 @@ async function invoke<T>(method: string, params: any = {}): Promise<T> {
  * AppClient acts as a drop-in replacement for the Wails App bindings.
  */
 export class AppClient {
-  // --- 1. Queue & Downloading ---
-
   async AddToDownloadQueue(
     spotifyID: string,
     trackName: string,
@@ -90,7 +88,6 @@ export class AppClient {
     return invoke("SkipDownloadItem", { item_id: itemID, file_path: filePath });
   }
 
-  // --- 2. Information Retrieval & API ---
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async GetSpotifyMetadata(req: main.SpotifyMetadataRequest): Promise<any> {
     return invoke("GetSpotifyMetadata", req);
@@ -143,8 +140,6 @@ export class AppClient {
   async DownloadLyrics(req: main.LyricsDownloadRequest): Promise<backend.LyricsDownloadResponse> {
     return invoke("DownloadLyrics", req);
   }
-
-  // --- 4. History Management ---
 
   async AddFetchHistory(item: backend.FetchHistoryItem): Promise<void> {
     return invoke("AddFetchHistory", item);
@@ -266,8 +261,6 @@ export class AppClient {
     return invoke("UploadImageBytes", { filename, base64_data: base64Data });
   }
 
-  // --- 6. System, Config & FFmpeg ---
-
   async CheckFFmpegInstalled(): Promise<boolean> {
     return invoke("CheckFFmpegInstalled");
   }
@@ -318,8 +311,6 @@ export class AppClient {
     return invoke("SaveSettings", { settings });
   }
 
-  // --- 7. State Retrieval (Usually called via intervals) ---
-
   async GetDownloadProgress(): Promise<backend.ProgressInfo> {
     return invoke("GetDownloadProgress");
   }
@@ -329,5 +320,4 @@ export class AppClient {
   }
 }
 
-// Export a singleton instance to act just like the old Wails import
 export const app = new AppClient();

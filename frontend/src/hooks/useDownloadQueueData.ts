@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { POLL_INTERVAL } from "@/types/api";
 import { backend } from "../types/models";
 import { app } from "@/lib/rpc";
 export function useDownloadQueueData() {
@@ -26,7 +27,7 @@ export function useDownloadQueueData() {
     };
     fetchQueue();
     // later change it correctly
-    const interval = setInterval(fetchQueue, 5000);
+    const interval = setInterval(fetchQueue, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, []);
   return queueInfo;

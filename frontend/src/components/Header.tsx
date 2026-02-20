@@ -18,7 +18,7 @@ export function Header({ version, hasUpdate, releaseDate }: HeaderProps) {
         <div className="flex items-center justify-center gap-3">
           <img
             src="/icon.svg"
-            alt="SpotiFLAC"
+            alt="Silly"
             className="w-12 h-12 cursor-pointer"
             onClick={() => window.location.reload()}
           />
@@ -26,7 +26,7 @@ export function Header({ version, hasUpdate, releaseDate }: HeaderProps) {
             className="text-4xl font-bold cursor-pointer"
             onClick={() => window.location.reload()}
           >
-            SpotiFLAC
+            Silly
           </h1>
           <div className="relative">
             <Tooltip>
@@ -36,7 +36,7 @@ export function Header({ version, hasUpdate, releaseDate }: HeaderProps) {
                     type="button"
                     onClick={() =>
                       openExternal(
-                        "https://github.com/afkarxyz/SpotiFLAC/releases",
+                        "https://github.com/tribhuwan-kumar/silly/releases",
                       )
                     }
                     className="cursor-pointer hover:opacity-80 transition-opacity"

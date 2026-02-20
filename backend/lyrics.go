@@ -261,7 +261,7 @@ func (c *LyricsClient) ConvertToLRC(lyrics *LyricsResponse, trackName, artistNam
 
 	sb.WriteString(fmt.Sprintf("[ti:%s]\n", trackName))
 	sb.WriteString(fmt.Sprintf("[ar:%s]\n", artistName))
-	sb.WriteString("[by:SpotiFlac]\n")
+	sb.WriteString("[by:Silly]\n")
 	sb.WriteString("\n")
 
 	for _, line := range lyrics.Lines {
