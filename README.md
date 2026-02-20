@@ -1,4 +1,18 @@
-### [Download](https://github.com/tribhuwan-kumar/Silly/releases)
+## [Setup](https://github.com/tribhuwan-kumar/silly/releases)
+
+Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) to host Silly on your server.
+
+## Docker
+
+```
+
+```
+
+## SystemD
+
+```
+
+```
 
 ## Screenshot
 
@@ -10,7 +24,7 @@ _If this software is useful and brings you value,
 consider supporting the project by buying me a coffee.
 Your support helps keep development going._
 
-[![Ko-fi](https://img.shields.io/badge/Support%20me%20on%20Ko--fi-72a5f2?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/afkarxyz)
+<iframe src="https://github.com/sponsors/tribhuwan-kumar/card" title="Sponsor tribhuwan-kumar" height="100" width="600" style="border: 0; border-radius: 12px;"></iframe>
 
 ## Disclaimer
 
