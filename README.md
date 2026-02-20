@@ -11,7 +11,14 @@ Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) t
 ## SystemD
 
 ```
-
+# check the arch
+curl -LJO https://github.com/tribhuwan-kumar/silly/releases/download/v1.3.0/silly-linux-aarch64
+chmod +x silly-linux-aarch64
+mv silly-linux-aarch64 /usr/local/bin/
+curl -LJO https://raw.githubusercontent.com/tribhuwan-kumar/silly/refs/heads/web/systemd/silly.service
+mv silly.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl start silly
 ```
 
 ## Screenshot
