@@ -25,7 +25,8 @@ export function useDownloadQueueData() {
       }
     };
     fetchQueue();
-    const interval = setInterval(fetchQueue, 200);
+    // later change it correctly
+    const interval = setInterval(fetchQueue, 5000);
     return () => clearInterval(interval);
   }, []);
   return queueInfo;

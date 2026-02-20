@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Download,
-  FolderOpen,
   CheckCircle,
   XCircle,
   FileText,
@@ -82,7 +81,6 @@ interface TrackInfoProps {
     releaseDate?: string,
     discNumber?: number,
   ) => void;
-  onOpenFolder: () => void;
   onBack?: () => void;
 }
 export function TrackInfo({
@@ -106,7 +104,6 @@ export function TrackInfo({
   onDownloadLyrics,
   onCheckAvailability,
   onDownloadCover,
-  onOpenFolder,
   onBack,
 }: TrackInfoProps) {
   const { playPreview, loadingPreview, playingTrack } = usePreview();
@@ -376,12 +373,6 @@ export function TrackInfo({
                       )}
                     </TooltipContent>
                   </Tooltip>
-                )}
-                {isDownloaded && (
-                  <Button onClick={onOpenFolder} variant="outline">
-                    <FolderOpen className="h-4 w-4" />
-                    Open Folder
-                  </Button>
                 )}
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Trash2,
@@ -41,15 +41,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  GetDownloadHistory,
-  ClearDownloadHistory,
-  GetPreviewURL,
-  GetFetchHistory,
-  DeleteDownloadHistoryItem,
-  DeleteFetchHistoryItem,
-  ClearFetchHistoryByType,
-} from "../../wailsjs/go/main/App";
+import { app } from "@/lib/rpc";
 import {
   Tooltip,
   TooltipContent,
@@ -98,9 +90,6 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
   const [downloadHistory, setDownloadHistory] = useState<DownloadHistoryItem[]>(
     [],
   );
-  const [filteredDownloadHistory, setFilteredDownloadHistory] = useState<
-    DownloadHistoryItem[]
-  >([]);
   const [showClearDownloadConfirm, setShowClearDownloadConfirm] =
     useState(false);
   const [downloadSearchQuery, setDownloadSearchQuery] = useState("");
@@ -109,41 +98,45 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
   const [playingPreviewId, setPlayingPreviewId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [fetchHistory, setFetchHistory] = useState<FetchHistoryItem[]>([]);
-  const [filteredFetchHistory, setFilteredFetchHistory] = useState<
-    FetchHistoryItem[]
-  >([]);
   const [activeFetchTab, setActiveFetchTab] = useState("track");
   const [showClearFetchConfirm, setShowClearFetchConfirm] = useState(false);
   const [fetchSearchQuery, setFetchSearchQuery] = useState("");
   const [fetchCurrentPage, setFetchCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
+
   const fetchDownloadHistory = async () => {
     try {
-      const items = await GetDownloadHistory();
+      const items = await app.GetDownloadHistory();
       setDownloadHistory(items || []);
     } catch (err) {
       console.error("Failed to fetch download history:", err);
     }
   };
+
   const fetchFetchHistory = async () => {
     try {
-      const items = await GetFetchHistory();
+      const items = await app.GetFetchHistory();
       setFetchHistory(items || []);
     } catch (err) {
       console.error("Failed to fetch fetch history:", err);
     }
   };
+
   useEffect(() => {
-    if (activeTab === "downloads") {
-      fetchDownloadHistory();
-      const interval = setInterval(fetchDownloadHistory, 5000);
-      return () => clearInterval(interval);
-    } else {
-      fetchFetchHistory();
-      const interval = setInterval(fetchFetchHistory, 5000);
-      return () => clearInterval(interval);
-    }
+    const loadData = async () => {
+      if (activeTab === "downloads") {
+        await fetchDownloadHistory();
+      } else {
+        await fetchFetchHistory();
+      }
+    };
+    loadData();
+    const interval = setInterval(async () => {
+      await loadData();
+    }, 5000);
+    return () => clearInterval(interval);
   }, [activeTab]);
+
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -151,23 +144,26 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
       }
     };
   }, []);
-  useEffect(() => {
+
+  const filteredDownloadHistory = useMemo(() => {
     let result = [...downloadHistory];
     if (downloadSearchQuery) {
       const query = downloadSearchQuery.toLowerCase();
       result = result.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
-          item.artists.toLowerCase().includes(query) ||
-          item.album.toLowerCase().includes(query),
+            item.artists.toLowerCase().includes(query) ||
+            item.album.toLowerCase().includes(query),
       );
     }
+
     const parseDuration = (str: string) => {
       const parts = str.split(":").map(Number);
       if (parts.length === 2) return parts[0] * 60 + parts[1];
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
       return 0;
     };
+
     result.sort((a, b) => {
       switch (downloadSortBy) {
         case "default":
@@ -191,32 +187,40 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
           return 0;
       }
     });
-    setFilteredDownloadHistory(result);
-  }, [downloadHistory, downloadSearchQuery, downloadSortBy]);
+
+  return result;
+}, [downloadHistory, downloadSearchQuery, downloadSortBy]);
+
   useEffect(() => {
     setDownloadCurrentPage(1);
   }, [downloadSearchQuery, downloadSortBy]);
+
   useEffect(() => {
+    setFetchCurrentPage(1);
+  }, [fetchSearchQuery, activeFetchTab]);
+
+  const filteredFetchHistory = useMemo(() => {
     let result = [...fetchHistory];
+
     if (activeFetchTab !== "all") {
       result = result.filter(
         (item) => item.type.toLowerCase() === activeFetchTab.toLowerCase(),
       );
     }
+
     if (fetchSearchQuery) {
       const query = fetchSearchQuery.toLowerCase();
       result = result.filter(
         (item) =>
           item.name.toLowerCase().includes(query) ||
-          item.info.toLowerCase().includes(query),
+            item.info.toLowerCase().includes(query),
       );
     }
+
     result.sort((a, b) => b.timestamp - a.timestamp);
-    setFilteredFetchHistory(result);
+    return result;
   }, [fetchHistory, fetchSearchQuery, activeFetchTab]);
-  useEffect(() => {
-    setFetchCurrentPage(1);
-  }, [fetchSearchQuery, activeFetchTab]);
+
   const handlePreview = async (id: string, spotifyId: string) => {
     if (playingPreviewId === id) {
       audioRef.current?.pause();
@@ -227,7 +231,7 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
       audioRef.current.pause();
     }
     try {
-      const url = await GetPreviewURL(spotifyId);
+      const url = await app.GetPreviewURL(spotifyId);
       if (url) {
         const audio = new Audio(url);
         audioRef.current = audio;
@@ -241,22 +245,22 @@ export function HistoryPage({ onHistorySelect }: HistoryPageProps) {
     }
   };
   const handleClearDownloadHistory = async () => {
-    await ClearDownloadHistory();
+    await app.ClearDownloadHistory();
     fetchDownloadHistory();
     setShowClearDownloadConfirm(false);
   };
   const handleDeleteDownloadItem = async (id: string) => {
-    await DeleteDownloadHistoryItem(id);
+    await app.DeleteDownloadHistoryItem(id);
     setDownloadHistory((prev) => prev.filter((item) => item.id !== id));
   };
   const handleClearFetchHistory = async () => {
-    await ClearFetchHistoryByType(activeFetchTab);
+    await app.ClearFetchHistoryByType(activeFetchTab);
     fetchFetchHistory();
     setShowClearFetchConfirm(false);
   };
   const handleDeleteFetchItem = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await DeleteFetchHistoryItem(id);
+    await app.DeleteFetchHistoryItem(id);
     setFetchHistory((prev) => prev.filter((item) => item.id !== id));
   };
   const getPaginationPages = (

@@ -16,7 +16,6 @@
 
     /* Linting */
     "strict": true,
-    "noExplicitAny": false,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": true,

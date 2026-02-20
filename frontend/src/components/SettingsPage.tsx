@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
@@ -403,7 +404,6 @@ export function SettingsPage({
 
                   {tempSettings.downloader === "auto" && (
                     <>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       <Select
                         value={tempSettings.autoOrder || "tidal-qobuz-amazon"}
                         onValueChange={(value: any) =>

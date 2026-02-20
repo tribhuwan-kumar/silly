@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Download,
-  FolderOpen,
   ImageDown,
   FileText,
   XCircle,
@@ -110,7 +109,6 @@ interface AlbumInfoProps {
   onDownloadAll: () => void;
   onDownloadSelected: () => void;
   onStopDownload: () => void;
-  onOpenFolder: () => void;
   onPageChange: (page: number) => void;
   onArtistClick?: (artist: {
     id: string;
@@ -161,7 +159,6 @@ export function AlbumInfo({
   onDownloadAll,
   onDownloadSelected,
   onStopDownload,
-  onOpenFolder,
   onPageChange,
   onArtistClick,
   onTrackClick,
@@ -280,12 +277,6 @@ export function AlbumInfo({
                       <p>Download All Covers</p>
                     </TooltipContent>
                   </Tooltip>
-                )}
-                {downloadedTracks.size > 0 && (
-                  <Button onClick={onOpenFolder} variant="outline">
-                    <FolderOpen className="h-4 w-4" />
-                    Open Folder
-                  </Button>
                 )}
               </div>
               {isDownloading && (

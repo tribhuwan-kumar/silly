@@ -1,3 +1,6 @@
+import { main, backend } from "@/types/models";
+import { toastWithSound as toast } from "@/lib/toast-with-sound";
+
 // Define the base RPC response structure
 interface RPCResponse<T> {
   result?: T;
@@ -30,6 +33,8 @@ async function invoke<T>(method: string, params: any = {}): Promise<T> {
 
     return data.result as T;
   } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    toast.error(errorMessage);
     console.error(`RPC Error [${method}]:`, e);
     throw e;
   }
@@ -37,9 +42,6 @@ async function invoke<T>(method: string, params: any = {}): Promise<T> {
 
 /**
  * AppClient acts as a drop-in replacement for the Wails App bindings.
- * It maps the old multi-argument signatures to the new struct-based JSON payloads.
- * * Note: Types are set to 'any' for complex models to prevent compilation errors,
- * you can replace 'any' with your actual imported types from '../models' if you kept them.
  */
 export class AppClient {
   // --- 1. Queue & Downloading ---
@@ -58,8 +60,7 @@ export class AppClient {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadTrack(req: any): Promise<any> {
+  async DownloadTrack(req: main.DownloadRequest): Promise<main.DownloadResponse> {
     return invoke("DownloadTrack", req);
   }
 
@@ -90,74 +91,62 @@ export class AppClient {
   }
 
   // --- 2. Information Retrieval & API ---
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async GetSpotifyMetadata(req: any): Promise<string> {
-    // Returns JSON string in old implementation, consider changing React to handle the raw object directly
+  async GetSpotifyMetadata(req: main.SpotifyMetadataRequest): Promise<any> {
     return invoke("GetSpotifyMetadata", req);
   }
 
-  async GetStreamingURLs(
-    spotifyTrackID: string,
-    region: string,
-  ): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetStreamingURLs( spotifyTrackID: string, region: string,): Promise<any> {
     return invoke("GetStreamingURLs", {
       spotify_track_id: spotifyTrackID,
       region,
     });
   }
 
-  async CheckTrackAvailability(spotifyTrackID: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async CheckTrackAvailability(spotifyTrackID: string): Promise<any> {
     return invoke("CheckTrackAvailability", {
       spotify_track_id: spotifyTrackID,
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async SearchSpotify(req: any): Promise<any> {
+  async SearchSpotify(req: main.SpotifySearchRequest): Promise<backend.SearchResponse> {
     return invoke("SearchSpotify", req);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async SearchSpotifyByType(req: any): Promise<any[]> {
+  async SearchSpotifyByType(req: main.SpotifySearchByTypeRequest): Promise<Array<backend.SearchResult>> {
     return invoke("SearchSpotifyByType", req);
   }
 
-  async GetPreviewURL(trackID: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetPreviewURL(trackID: string): Promise<any> {
     return invoke("GetPreviewURL", { track_id: trackID });
   }
 
-  // --- 3. Extra Downloads (Covers, Lyrics, Headers) ---
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadAvatar(req: any): Promise<any> {
+  async DownloadAvatar(req: main.AvatarDownloadRequest): Promise<backend.AvatarDownloadResponse> {
     return invoke("DownloadAvatar", req);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadCover(req: any): Promise<any> {
+  async DownloadCover(req: main.CoverDownloadRequest): Promise<backend.CoverDownloadResponse> {
     return invoke("DownloadCover", req);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadGalleryImage(req: any): Promise<any> {
+  async DownloadGalleryImage(req: main.GalleryImageDownloadRequest): Promise<backend.GalleryImageDownloadResponse> {
     return invoke("DownloadGalleryImage", req);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadHeader(req: any): Promise<any> {
+  async DownloadHeader(req: main.HeaderDownloadRequest): Promise<backend.HeaderDownloadResponse> {
     return invoke("DownloadHeader", req);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadLyrics(req: any): Promise<any> {
+  async DownloadLyrics(req: main.LyricsDownloadRequest): Promise<backend.LyricsDownloadResponse> {
     return invoke("DownloadLyrics", req);
   }
 
   // --- 4. History Management ---
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async AddFetchHistory(item: any): Promise<void> {
+  async AddFetchHistory(item: backend.FetchHistoryItem): Promise<void> {
     return invoke("AddFetchHistory", item);
   }
 
@@ -181,35 +170,19 @@ export class AppClient {
     return invoke("DeleteFetchHistoryItem", { id });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async GetDownloadHistory(): Promise<any[]> {
+  async GetDownloadHistory(): Promise<Array<backend.HistoryItem>> {
     return invoke("GetDownloadHistory");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async GetFetchHistory(): Promise<any[]> {
+  async GetFetchHistory(): Promise<Array<backend.FetchHistoryItem>> {
     return invoke("GetFetchHistory");
-  }
-
-  // --- 5. File Operations & Analysis ---
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async AnalyzeMultipleTracks(filePaths: string[]): Promise<any[]> {
-    return invoke("AnalyzeMultipleTracks", { file_paths: filePaths });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async AnalyzeTrack(filePath: string): Promise<any> {
-    return invoke("AnalyzeTrack", { file_path: filePath });
   }
 
   async CheckFilesExistence(
     outputDir: string,
     rootDir: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tracks: any[],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<any[]> {
+    tracks: Array<main.CheckFileExistenceRequest>,
+  ): Promise<Array<main.CheckFileExistenceResult>> {
     return invoke("CheckFilesExistence", {
       output_dir: outputDir,
       root_dir: rootDir,
@@ -217,15 +190,14 @@ export class AppClient {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ConvertAudio(req: any): Promise<any[]> {
+  async ConvertAudio(req: main.ConvertAudioRequest): Promise<Array<backend.ConvertAudioResult>> {
     return invoke("ConvertAudio", req);
   }
 
   async CreateM3U8File(
     m3u8Name: string,
     outputDir: string,
-    filePaths: string[],
+    filePaths: Array<string>,
   ): Promise<void> {
     return invoke("CreateM3U8File", {
       m3u8_name: m3u8Name,
@@ -238,39 +210,39 @@ export class AppClient {
     return invoke("GetFileSizes", { file_paths: filePaths });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ListAudioFilesInDir(dirPath: string): Promise<any[]> {
+  async ListAudioFilesInDir(dirPath: string): Promise<Array<backend.FileInfo>> {
     return invoke("ListAudioFilesInDir", { dir_path: dirPath });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ListDirectoryFiles(dirPath: string): Promise<any[]> {
+  async ListDirectoryFiles(dirPath: string): Promise<Array<backend.FileInfo>> {
     return invoke("ListDirectoryFiles", { dir_path: dirPath });
   }
 
-  async GetUserHomeDir(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetUserHomeDir(): Promise<any> {
     return invoke("GetUserHomeDir", {});
   }
 
-  async GetPathSeparator(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetPathSeparator(): Promise<any> {
     return invoke("GetPathSeparator", {});
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async PreviewRenameFiles(files: string[], format: string): Promise<any[]> {
+  async PreviewRenameFiles(files: string[], format: string): Promise<Array<backend.RenamePreview>> {
     return invoke("PreviewRenameFiles", { files, format });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ReadFileMetadata(filePath: string): Promise<any> {
+  async ReadFileMetadata(filePath: string): Promise<backend.AudioMetadata> {
     return invoke("ReadFileMetadata", { file_path: filePath });
   }
 
-  async ReadImageAsBase64(filePath: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async ReadImageAsBase64(filePath: string): Promise<any> {
     return invoke("ReadImageAsBase64", { file_path: filePath });
   }
 
-  async ReadTextFile(filePath: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async ReadTextFile(filePath: string): Promise<any> {
     return invoke("ReadTextFile", { file_path: filePath });
   }
 
@@ -278,12 +250,12 @@ export class AppClient {
     return invoke("RenameFileTo", { old_path: oldPath, new_name: newName });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async RenameFilesByMetadata(files: string[], format: string): Promise<any[]> {
+  async RenameFilesByMetadata(files: string[], format: string): Promise<Array<backend.RenameResult>> {
     return invoke("RenameFilesByMetadata", { files, format });
   }
 
-  async UploadImage(filePath: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async UploadImage(filePath: string): Promise<any> {
     return invoke("UploadImage", { file_path: filePath });
   }
 
@@ -300,8 +272,7 @@ export class AppClient {
     return invoke("CheckFFmpegInstalled");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async DownloadFFmpeg(): Promise<any> {
+  async DownloadFFmpeg(): Promise<main.DownloadFFmpegResponse> {
     return invoke("DownloadFFmpeg");
   }
 
@@ -310,7 +281,8 @@ export class AppClient {
     return invoke("ExportFailedDownloads");
   }
 
-  async GetConfigPath(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetConfigPath(): Promise<any> {
     return invoke("GetConfigPath");
   }
 
@@ -318,11 +290,13 @@ export class AppClient {
     return invoke("GetDefaults");
   }
 
-  async GetFFmpegPath(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetFFmpegPath(): Promise<any> {
     return invoke("GetFFmpegPath");
   }
 
-  async GetOSInfo(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async GetOSInfo(): Promise<any> {
     return invoke("GetOSInfo");
   }
 
@@ -346,13 +320,11 @@ export class AppClient {
 
   // --- 7. State Retrieval (Usually called via intervals) ---
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async GetDownloadProgress(): Promise<any> {
+  async GetDownloadProgress(): Promise<backend.ProgressInfo> {
     return invoke("GetDownloadProgress");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async GetDownloadQueue(): Promise<any> {
+  async GetDownloadQueue(): Promise<backend.DownloadQueueInfo> {
     return invoke("GetDownloadQueue");
   }
 }

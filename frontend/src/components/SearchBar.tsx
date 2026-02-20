@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/tooltip";
 import { FetchHistory } from "@/components/FetchHistory";
 import type { HistoryItem } from "@/components/FetchHistory";
-import { SearchSpotify, SearchSpotifyByType } from "../../wailsjs/go/main/App";
-import { backend } from "../../wailsjs/go/models";
+import { app } from "@/lib/rpc";
+import { backend } from "@/types/models";
 import { cn } from "@/lib/utils";
 import { useTypingEffect } from "@/hooks/useTypingEffect";
 import {
@@ -240,6 +240,7 @@ const getRegionName = (code: string) => {
   try {
     if (code === "XK") return "Kosovo";
     return regionNames.of(code) || code;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return code;
   }
@@ -347,7 +348,7 @@ export function SearchBar({
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await SearchSpotify({
+        const results = await app.SearchSpotify({
           query: searchQuery,
           limit: SEARCH_LIMIT,
         });
@@ -388,7 +389,7 @@ export function SearchBar({
     const currentCount = getTabCount(activeTab);
     setIsLoadingMore(true);
     try {
-      const moreResults = await SearchSpotifyByType({
+      const moreResults = await app.SearchSpotifyByType({
         query: lastSearchedQuery,
         search_type: typeMap[activeTab],
         limit: SEARCH_LIMIT,

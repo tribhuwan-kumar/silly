@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-empty */
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -33,8 +35,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
-import { SelectFolder } from "../../wailsjs/go/main/App";
-import { backend } from "../../wailsjs/go/models";
+import { backend } from "@/types/models";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 import { getSettings } from "@/lib/settings";
 import {
@@ -45,26 +46,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-const ListDirectoryFiles = (path: string): Promise<backend.FileInfo[]> =>
-  (window as any)["go"]["main"]["App"]["ListDirectoryFiles"](path);
-const PreviewRenameFiles = (
-  files: string[],
-  format: string,
-): Promise<backend.RenamePreview[]> =>
-  (window as any)["go"]["main"]["App"]["PreviewRenameFiles"](files, format);
-const RenameFilesByMetadata = (
-  files: string[],
-  format: string,
-): Promise<backend.RenameResult[]> =>
-  (window as any)["go"]["main"]["App"]["RenameFilesByMetadata"](files, format);
-const ReadFileMetadata = (path: string): Promise<backend.AudioMetadata> =>
-  (window as any)["go"]["main"]["App"]["ReadFileMetadata"](path);
-const ReadTextFile = (path: string): Promise<string> =>
-  (window as any)["go"]["main"]["App"]["ReadTextFile"](path);
-const RenameFileTo = (oldPath: string, newName: string): Promise<void> =>
-  (window as any)["go"]["main"]["App"]["RenameFileTo"](oldPath, newName);
-const ReadImageAsBase64 = (path: string): Promise<string> =>
-  (window as any)["go"]["main"]["App"]["ReadImageAsBase64"](path);
+
+// IMPORT THE RPC APP INSTANCE & BROWSER COMPONENT
+import { app } from "@/lib/rpc"; 
+import { ServerFolderBrowser } from "./ServerFolderBrowser";
+
 interface FileNode {
   name: string;
   path: string;
@@ -73,6 +59,7 @@ interface FileNode {
   children?: FileNode[];
   expanded?: boolean;
 }
+
 interface FileMetadata {
   title: string;
   artist: string;
@@ -82,14 +69,10 @@ interface FileMetadata {
   disc_number: number;
   year: string;
 }
+
 type TabType = "track" | "lyric" | "cover";
-const FORMAT_PRESETS: Record<
-  string,
-  {
-    label: string;
-    template: string;
-  }
-> = {
+
+const FORMAT_PRESETS: Record<string, { label: string; template: string }> = {
   title: { label: "Title", template: "{title}" },
   "title-artist": { label: "Title - Artist", template: "{title} - {artist}" },
   "artist-title": { label: "Artist - Title", template: "{artist} - {title}" },
@@ -125,9 +108,11 @@ const FORMAT_PRESETS: Record<
   },
   custom: { label: "Custom...", template: "{title} - {artist}" },
 };
+
 const STORAGE_KEY = "spotiflac_file_manager_state";
 const DEFAULT_PRESET = "title-artist";
 const DEFAULT_CUSTOM_FORMAT = "{title} - {artist}";
+
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -135,11 +120,16 @@ function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
+
 export function FileManagerPage() {
   const [rootPath, setRootPath] = useState(() => {
     const settings = getSettings();
     return settings.downloadPath || "";
   });
+  
+  // State for the folder browser modal
+  const [isFolderBrowserOpen, setIsFolderBrowserOpen] = useState(false);
+
   const [allFiles, setAllFiles] = useState<FileNode[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -166,10 +156,12 @@ export function FileManagerPage() {
     } catch {}
     return DEFAULT_CUSTOM_FORMAT;
   });
+
   const renameFormat =
     formatPreset === "custom"
       ? customFormat || FORMAT_PRESETS["custom"].template
       : FORMAT_PRESETS[formatPreset].template;
+
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<backend.RenamePreview[]>([]);
   const [renaming, setRenaming] = useState(false);
@@ -192,6 +184,7 @@ export function FileManagerPage() {
   const [manualRenameFile, setManualRenameFile] = useState("");
   const [manualRenameName, setManualRenameName] = useState("");
   const [manualRenaming, setManualRenaming] = useState(false);
+
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -200,6 +193,7 @@ export function FileManagerPage() {
       );
     } catch {}
   }, [formatPreset, customFormat]);
+
   useEffect(() => {
     const checkFullscreen = () => {
       const isMaximized = window.innerHeight >= window.screen.height * 0.9;
@@ -213,6 +207,7 @@ export function FileManagerPage() {
       window.removeEventListener("focus", checkFullscreen);
     };
   }, []);
+
   const filterFilesByType = (nodes: FileNode[], type: TabType): FileNode[] => {
     return nodes
       .map((node) => {
@@ -226,28 +221,26 @@ export function FileManagerPage() {
         const ext = node.name.toLowerCase();
         if (
           type === "track" &&
-          (ext.endsWith(".flac") ||
-            ext.endsWith(".mp3") ||
-            ext.endsWith(".m4a"))
+          (ext.endsWith(".flac") || ext.endsWith(".mp3") || ext.endsWith(".m4a"))
         )
           return node;
         if (type === "lyric" && ext.endsWith(".lrc")) return node;
         if (
           type === "cover" &&
-          (ext.endsWith(".jpg") ||
-            ext.endsWith(".jpeg") ||
-            ext.endsWith(".png"))
+          (ext.endsWith(".jpg") || ext.endsWith(".jpeg") || ext.endsWith(".png"))
         )
           return node;
         return null;
       })
       .filter((node): node is FileNode => node !== null);
   };
+
   const loadFiles = useCallback(async () => {
     if (!rootPath) return;
     setLoading(true);
     try {
-      const result = await ListDirectoryFiles(rootPath);
+      // UPDATED TO RPC CALL
+      const result = await app.ListDirectoryFiles(rootPath);
       if (!result || !Array.isArray(result)) {
         setAllFiles([]);
         setSelectedFiles(new Set());
@@ -271,10 +264,13 @@ export function FileManagerPage() {
       setLoading(false);
     }
   }, [rootPath]);
+
   useEffect(() => {
     if (rootPath) loadFiles();
   }, [rootPath, loadFiles]);
+
   const filteredFiles = filterFilesByType(allFiles, activeTab);
+
   const getAllFilesFlat = (nodes: FileNode[]): FileNode[] => {
     const result: FileNode[] = [];
     for (const node of nodes) {
@@ -283,22 +279,15 @@ export function FileManagerPage() {
     }
     return result;
   };
+
   const allAudioFiles = getAllFilesFlat(filterFilesByType(allFiles, "track"));
   const allLyricFiles = getAllFilesFlat(filterFilesByType(allFiles, "lyric"));
   const allCoverFiles = getAllFilesFlat(filterFilesByType(allFiles, "cover"));
-  const handleSelectFolder = async () => {
-    try {
-      const path = await SelectFolder(rootPath);
-      if (path) setRootPath(path);
-    } catch (err) {
-      toast.error("Failed to select folder", {
-        description: err instanceof Error ? err.message : "Unknown error",
-      });
-    }
-  };
+
   const toggleExpand = (path: string) => {
     setAllFiles((prev) => toggleNodeExpand(prev, path));
   };
+
   const toggleNodeExpand = (nodes: FileNode[], path: string): FileNode[] => {
     return nodes.map((node) => {
       if (node.path === path) return { ...node, expanded: !node.expanded };
@@ -307,6 +296,7 @@ export function FileManagerPage() {
       return node;
     });
   };
+
   const toggleSelect = (path: string) => {
     setSelectedFiles((prev) => {
       const newSet = new Set(prev);
@@ -315,6 +305,7 @@ export function FileManagerPage() {
       return newSet;
     });
   };
+
   const toggleFolderSelect = (node: FileNode) => {
     const folderFiles = getAllFilesFlat([node]);
     const allSelected = folderFiles.every((f) => selectedFiles.has(f.path));
@@ -325,6 +316,7 @@ export function FileManagerPage() {
       return newSet;
     });
   };
+
   const isFolderSelected = (node: FileNode): boolean | "indeterminate" => {
     const folderFiles = getAllFilesFlat([node]);
     if (folderFiles.length === 0) return false;
@@ -335,21 +327,25 @@ export function FileManagerPage() {
     if (selectedCount === folderFiles.length) return true;
     return "indeterminate";
   };
+
   const selectAll = () =>
     setSelectedFiles(new Set(allAudioFiles.map((f) => f.path)));
   const deselectAll = () => setSelectedFiles(new Set());
+  
   const resetToDefault = () => {
     setFormatPreset(DEFAULT_PRESET);
     setCustomFormat(DEFAULT_CUSTOM_FORMAT);
     setShowResetConfirm(false);
   };
+
   const handlePreview = async (isPreviewOnly: boolean) => {
     if (selectedFiles.size === 0) {
       toast.error("No files selected");
       return;
     }
     try {
-      const result = await PreviewRenameFiles(
+      // UPDATED TO RPC CALL
+      const result = await app.PreviewRenameFiles(
         Array.from(selectedFiles),
         renameFormat,
       );
@@ -362,12 +358,14 @@ export function FileManagerPage() {
       });
     }
   };
+
   const handleShowMetadata = async (filePath: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setMetadataFile(filePath);
     setLoadingMetadata(true);
     try {
-      const metadata = await ReadFileMetadata(filePath);
+      // UPDATED TO RPC CALL
+      const metadata = await app.ReadFileMetadata(filePath);
       setMetadataInfo(metadata as FileMetadata);
       setShowMetadata(true);
     } catch (err) {
@@ -379,12 +377,14 @@ export function FileManagerPage() {
       setLoadingMetadata(false);
     }
   };
+
   const handleShowLyrics = async (filePath: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setLyricsFile(filePath);
     setLyricsTab("synced");
     try {
-      const content = await ReadTextFile(filePath);
+      // UPDATED TO RPC CALL
+      const content = await app.ReadTextFile(filePath);
       setLyricsContent(content);
       setShowLyricsPreview(true);
     } catch (err) {
@@ -393,11 +393,13 @@ export function FileManagerPage() {
       });
     }
   };
+
   const handleShowCover = async (filePath: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCoverFile(filePath);
     try {
-      const data = await ReadImageAsBase64(filePath);
+      // UPDATED TO RPC CALL
+      const data = await app.ReadImageAsBase64(filePath);
       setCoverData(data);
       setShowCoverPreview(true);
     } catch (err) {
@@ -406,6 +408,7 @@ export function FileManagerPage() {
       });
     }
   };
+
   const getPlainLyrics = (content: string) => {
     return content
       .split("\n")
@@ -415,6 +418,7 @@ export function FileManagerPage() {
       .join("\n")
       .trim();
   };
+
   const formatTimestamp = (timestamp: string): string => {
     const match = timestamp.match(/\[(\d+):(\d+)(?:\.(\d+))?\]/);
     if (!match) return timestamp;
@@ -422,6 +426,7 @@ export function FileManagerPage() {
     const seconds = match[2];
     return `${minutes}:${seconds}`;
   };
+
   const renderSyncedLyrics = (content: string) => {
     if (!content)
       return (
@@ -454,6 +459,7 @@ export function FileManagerPage() {
       })
       .filter((item) => item !== null);
   };
+
   const handleCopyLyrics = async () => {
     try {
       const textToCopy =
@@ -465,6 +471,7 @@ export function FileManagerPage() {
       toast.error("Failed to copy lyrics");
     }
   };
+
   const handleManualRename = (filePath: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const fileName = filePath.split(/[/\\]/).pop() || "";
@@ -473,11 +480,13 @@ export function FileManagerPage() {
     setManualRenameName(nameWithoutExt);
     setShowManualRename(true);
   };
+
   const handleConfirmManualRename = async () => {
     if (!manualRenameFile || !manualRenameName.trim()) return;
     setManualRenaming(true);
     try {
-      await RenameFileTo(manualRenameFile, manualRenameName.trim());
+      // UPDATED TO RPC CALL
+      await app.RenameFileTo(manualRenameFile, manualRenameName.trim());
       toast.success("File renamed successfully");
       setShowManualRename(false);
       loadFiles();
@@ -489,11 +498,13 @@ export function FileManagerPage() {
       setManualRenaming(false);
     }
   };
+
   const handleRename = async () => {
     if (selectedFiles.size === 0) return;
     setRenaming(true);
     try {
-      const result = await RenameFilesByMetadata(
+      // UPDATED TO RPC CALL
+      const result = await app.RenameFilesByMetadata(
         Array.from(selectedFiles),
         renameFormat,
       );
@@ -503,6 +514,7 @@ export function FileManagerPage() {
       const failCount = result.filter(
         (r: backend.RenameResult) => !r.success,
       ).length;
+      
       if (successCount > 0)
         toast.success("Rename Complete", {
           description: `${successCount} file(s) renamed${failCount > 0 ? `, ${failCount} failed` : ""}`,
@@ -511,6 +523,7 @@ export function FileManagerPage() {
         toast.error("Rename Failed", {
           description: `All ${failCount} file(s) failed to rename`,
         });
+        
       setShowPreview(false);
       setSelectedFiles(new Set());
       loadFiles();
@@ -522,6 +535,7 @@ export function FileManagerPage() {
       setRenaming(false);
     }
   };
+
   const renderTrackTree = (nodes: FileNode[], depth = 0) => {
     return nodes.map((node) => (
       <div key={node.path}>
@@ -600,6 +614,7 @@ export function FileManagerPage() {
       </div>
     ));
   };
+
   const renderLyricTree = (nodes: FileNode[], depth = 0) => {
     return nodes.map((node) => (
       <div key={node.path}>
@@ -657,6 +672,7 @@ export function FileManagerPage() {
       </div>
     ));
   };
+
   const renderCoverTree = (nodes: FileNode[], depth = 0) => {
     return nodes.map((node) => (
       <div key={node.path}>
@@ -714,8 +730,10 @@ export function FileManagerPage() {
       </div>
     ));
   };
+
   const allSelected =
     allAudioFiles.length > 0 && selectedFiles.size === allAudioFiles.length;
+
   return (
     <div className={`space-y-6 ${isFullscreen ? "h-full flex flex-col" : ""}`}>
       <div className="flex items-center justify-between shrink-0">
@@ -729,8 +747,8 @@ export function FileManagerPage() {
           placeholder="Select a folder..."
           className="flex-1"
         />
-        <Button onClick={handleSelectFolder}>
-          <FolderOpen className="h-4 w-4" />
+        <Button onClick={() => setIsFolderBrowserOpen(true)}>
+          <FolderOpen className="h-4 w-4 mr-2" />
           Browse
         </Button>
         <Button
@@ -738,10 +756,20 @@ export function FileManagerPage() {
           onClick={loadFiles}
           disabled={loading || !rootPath}
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
       </div>
+
+      <ServerFolderBrowser
+        isOpen={isFolderBrowserOpen}
+        onClose={() => setIsFolderBrowserOpen(false)}
+        onSelectFolder={(path) => {
+          setRootPath(path);
+          // Don't auto load here, let the useEffect handle it when rootPath changes
+        }}
+        title="Select Folder to Manage"
+      />
 
       <div className="flex gap-2 border-b shrink-0">
         <Button
@@ -750,7 +778,7 @@ export function FileManagerPage() {
           onClick={() => setActiveTab("track")}
           className="rounded-b-none"
         >
-          <FileMusic className="h-4 w-4" />
+          <FileMusic className="h-4 w-4 mr-2" />
           Track ({allAudioFiles.length})
         </Button>
         <Button
@@ -759,7 +787,7 @@ export function FileManagerPage() {
           onClick={() => setActiveTab("lyric")}
           className="rounded-b-none"
         >
-          <FileText className="h-4 w-4" />
+          <FileText className="h-4 w-4 mr-2" />
           Lyric ({allLyricFiles.length})
         </Button>
         <Button
@@ -768,7 +796,7 @@ export function FileManagerPage() {
           onClick={() => setActiveTab("cover")}
           className="rounded-b-none"
         >
-          <Image className="h-4 w-4" />
+          <Image className="h-4 w-4 mr-2" />
           Cover ({allCoverFiles.length})
         </Button>
       </div>
@@ -864,7 +892,7 @@ export function FileManagerPage() {
                 onClick={() => handlePreview(true)}
                 disabled={selectedFiles.size === 0 || loading}
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 mr-2" />
                 Preview
               </Button>
               <Button
@@ -872,7 +900,7 @@ export function FileManagerPage() {
                 onClick={() => handlePreview(false)}
                 disabled={selectedFiles.size === 0 || loading}
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-4 w-4 mr-2" />
                 Rename
               </Button>
             </div>
@@ -966,7 +994,7 @@ export function FileManagerPage() {
                 <Button onClick={handleRename} disabled={renaming}>
                   {renaming ? (
                     <>
-                      <Spinner className="h-4 w-4" />
+                      <Spinner className="h-4 w-4 mr-2" />
                       Renaming...
                     </>
                   ) : (
@@ -1159,7 +1187,7 @@ export function FileManagerPage() {
             >
               {manualRenaming ? (
                 <>
-                  <Spinner className="h-4 w-4" />
+                  <Spinner className="h-4 w-4 mr-2" />
                   Renaming...
                 </>
               ) : (

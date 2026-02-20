@@ -770,6 +770,7 @@ export namespace main {
       this.disc_number = source["disc_number"];
     }
   }
+
   export class SpotifyMetadataRequest {
     url: string;
     batch: boolean;
@@ -788,6 +789,7 @@ export namespace main {
       this.timeout = source["timeout"];
     }
   }
+
   export class SpotifySearchByTypeRequest {
     query: string;
     search_type: string;

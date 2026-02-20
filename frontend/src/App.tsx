@@ -20,12 +20,6 @@ import {
   updateSettings,
 } from "@/lib/settings";
 import { applyTheme } from "@/lib/themes";
-import {
-  OpenFolder,
-  CheckFFmpegInstalled,
-  DownloadFFmpeg,
-} from "../wailsjs/go/main/App";
-import { EventsOn, EventsOff, Quit } from "../wailsjs/runtime/runtime";
 import { app } from "./lib/rpc";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 import { TitleBar } from "@/components/TitleBar";
@@ -38,7 +32,6 @@ import { PlaylistInfo } from "@/components/PlaylistInfo";
 import { ArtistInfo } from "@/components/ArtistInfo";
 import { DownloadQueue } from "@/components/DownloadQueue";
 import { DownloadProgressToast } from "@/components/DownloadProgressToast";
-import { AudioAnalysisPage } from "@/components/AudioAnalysisPage";
 import { AudioConverterPage } from "@/components/AudioConverterPage";
 import { FileManagerPage } from "@/components/FileManagerPage";
 import { SettingsPage } from "@/components/SettingsPage";
@@ -97,6 +90,7 @@ function App() {
   const [isInstallingFFmpeg, setIsInstallingFFmpeg] = useState(false);
   const [ffmpegInstallProgress, setFfmpegInstallProgress] = useState(0);
   const [ffmpegInstallStatus, setFfmpegInstallStatus] = useState("");
+
   useLayoutEffect(() => {
     const savedSettings = getSettings();
     if (savedSettings) {
@@ -105,6 +99,7 @@ function App() {
       applyFont(savedSettings.fontFamily);
     }
   }, []);
+
   useEffect(() => {
     const initSettings = async () => {
       const settings = await loadSettings();
@@ -147,6 +142,7 @@ function App() {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
   const handleEnableSpotFetchApi = async () => {
     try {
       await updateSettings({ useSpotFetchAPI: true });
@@ -157,9 +153,11 @@ function App() {
       toast.error("Failed to update settings");
     }
   };
+
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
   useEffect(() => {
     setSelectedTracks([]);
     setSearchQuery("");
@@ -169,7 +167,9 @@ function App() {
     availability.clearAvailability();
     setSortBy("default");
     setCurrentListPage(1);
+    console.log("availability:", availability)
   }, [metadata.metadata]);
+
   const checkForUpdates = async () => {
     try {
       const response = await fetch(
@@ -187,6 +187,7 @@ function App() {
       console.error("Failed to check for updates:", err);
     }
   };
+
   const loadHistory = () => {
     try {
       const saved = localStorage.getItem(HISTORY_KEY);
@@ -197,25 +198,29 @@ function App() {
       console.error("Failed to load history:", err);
     }
   };
+
   const handleInstallFFmpeg = async () => {
     setIsInstallingFFmpeg(true);
-    setFfmpegInstallProgress(0);
-    setFfmpegInstallStatus("starting");
+    setFfmpegInstallProgress(0); // We will fake a progress or keep it indeterminate
+    setFfmpegInstallStatus("downloading");
+
+    // Optional: Fake a visual progress bar so the user knows it's working
+    // (Since the server might take 10-30 seconds to download FFmpeg)
+    const progressInterval = setInterval(() => {
+      setFfmpegInstallProgress((prev) => {
+        if (prev >= 95) return prev; // Stop at 95% until actually done
+        return prev + 5;
+      });
+    }, 1000);
+
     try {
-      EventsOn("ffmpeg:progress", (progress: number) => {
-        setFfmpegInstallProgress(progress);
-        if (progress >= 100) {
-          setFfmpegInstallStatus("extracting");
-        } else {
-          setFfmpegInstallStatus("downloading");
-        }
-      });
-      EventsOn("ffmpeg:status", (status: string) => {
-        setFfmpegInstallStatus(status);
-      });
-      const response = await DownloadFFmpeg();
-      EventsOff("ffmpeg:progress");
-      EventsOff("ffmpeg:status");
+      // This is a blocking HTTP call now. It will wait until Go finishes downloading.
+      const response = await app.DownloadFFmpeg();
+
+      clearInterval(progressInterval);
+      setFfmpegInstallProgress(100);
+      setFfmpegInstallStatus("extracting");
+
       if (response.success) {
         toast.success("FFmpeg installed successfully!");
         setIsFFmpegInstalled(true);
@@ -223,14 +228,17 @@ function App() {
         toast.error(`Failed to install FFmpeg: ${response.error}`);
       }
     } catch (error) {
+      clearInterval(progressInterval);
       console.error("Error installing FFmpeg:", error);
       toast.error(`Error during FFmpeg installation: ${error}`);
     } finally {
+      clearInterval(progressInterval);
       setIsInstallingFFmpeg(false);
       setFfmpegInstallProgress(0);
       setFfmpegInstallStatus("");
     }
   };
+
   const saveHistory = (history: HistoryItem[]) => {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -238,6 +246,7 @@ function App() {
       console.error("Failed to save history:", err);
     }
   };
+
   const addToHistory = (item: Omit<HistoryItem, "id" | "timestamp">) => {
     setFetchHistory((prev) => {
       const filtered = prev.filter((h) => h.url !== item.url);
@@ -251,6 +260,7 @@ function App() {
       return updated;
     });
   };
+
   const removeFromHistory = (id: string) => {
     setFetchHistory((prev) => {
       const updated = prev.filter((h) => h.id !== id);
@@ -258,6 +268,7 @@ function App() {
       return updated;
     });
   };
+
   const handleHistorySelect = async (item: HistoryItem) => {
     setSpotifyUrl(item.url);
     const updatedUrl = await metadata.handleFetchMetadata(item.url);
@@ -265,12 +276,14 @@ function App() {
       setSpotifyUrl(updatedUrl);
     }
   };
+
   const handleFetchMetadata = async () => {
     const updatedUrl = await metadata.handleFetchMetadata(spotifyUrl);
     if (updatedUrl) {
       setSpotifyUrl(updatedUrl);
     }
   };
+
   useEffect(() => {
     if (!metadata.metadata || !spotifyUrl) return;
     let historyItem: Omit<HistoryItem, "id" | "timestamp"> | null = null;
@@ -315,10 +328,12 @@ function App() {
       addToHistory(historyItem);
     }
   }, [metadata.metadata]);
+
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setCurrentListPage(1);
   };
+
   const toggleTrackSelection = (id: string) => {
     setSelectedTracks((prev) =>
       prev.includes(id)
@@ -344,19 +359,9 @@ function App() {
       );
     }
   };
-  const handleOpenFolder = async () => {
-    const settings = getSettings();
-    if (!settings.downloadPath) {
-      toast.error("Download path not set");
-      return;
-    }
-    try {
-      await OpenFolder(settings.downloadPath);
-    } catch (error) {
-      console.error("Error opening folder:", error);
-      toast.error(`Error opening folder: ${error}`);
-    }
-  };
+
+  // in case for printing dl paths it'd be `settings.downloadPath`
+
   const renderMetadata = () => {
     if (!metadata.metadata) return null;
     if ("track" in metadata.metadata) {
@@ -441,11 +446,11 @@ function App() {
             )
           }
           onCheckAvailability={availability.checkAvailability}
-          onOpenFolder={handleOpenFolder}
           onBack={metadata.resetMetadata}
         />
       );
     }
+
     if ("album_info" in metadata.metadata) {
       const { album_info, track_list } = metadata.metadata;
       return (
@@ -558,7 +563,6 @@ function App() {
             )
           }
           onStopDownload={download.handleStopDownload}
-          onOpenFolder={handleOpenFolder}
           onPageChange={setCurrentListPage}
           onBack={metadata.resetMetadata}
           onArtistClick={async (artist) => {
@@ -680,7 +684,6 @@ function App() {
             )
           }
           onStopDownload={download.handleStopDownload}
-          onOpenFolder={handleOpenFolder}
           onPageChange={setCurrentListPage}
           onBack={metadata.resetMetadata}
           onAlbumClick={metadata.handleAlbumClick}
@@ -699,6 +702,7 @@ function App() {
         />
       );
     }
+
     if ("artist_info" in metadata.metadata) {
       const { artist_info, album_list, track_list } = metadata.metadata;
       return (
@@ -804,7 +808,6 @@ function App() {
             )
           }
           onStopDownload={download.handleStopDownload}
-          onOpenFolder={handleOpenFolder}
           onAlbumClick={metadata.handleAlbumClick}
           onBack={metadata.resetMetadata}
           onArtistClick={async (artist) => {
@@ -825,6 +828,7 @@ function App() {
     }
     return null;
   };
+
   const handlePageChange = (page: PageType) => {
     if (
       currentPage === "settings" &&
@@ -837,6 +841,7 @@ function App() {
     }
     setCurrentPage(page);
   };
+
   const handleDiscardChanges = () => {
     setShowUnsavedChangesDialog(false);
     if (resetSettingsFn) {
@@ -851,10 +856,12 @@ function App() {
       setPendingPageChange(null);
     }
   };
+
   const handleCancelNavigation = () => {
     setShowUnsavedChangesDialog(false);
     setPendingPageChange(null);
   };
+
   const renderPage = () => {
     switch (currentPage) {
       case "settings":
@@ -877,8 +884,6 @@ function App() {
             }}
           />
         );
-      case "audio-analysis":
-        return <AudioAnalysisPage />;
       case "audio-converter":
         return <AudioConverterPage />;
       case "file-manager":
@@ -969,6 +974,7 @@ function App() {
         );
     }
   };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background flex flex-col">
@@ -1083,7 +1089,12 @@ function App() {
                 <Button
                   variant="outline"
                   className="flex-1 h-11 text-sm font-bold transition-colors"
-                  onClick={() => Quit()}
+                  onClick={() => {
+                    window.close();
+                    setTimeout(() => {
+                      window.location.href = "about:blank"; 
+                    }, 100);
+                  }}
                 >
                   Exit
                 </Button>
@@ -1134,4 +1145,5 @@ function App() {
     </TooltipProvider>
   );
 }
+
 export default App;

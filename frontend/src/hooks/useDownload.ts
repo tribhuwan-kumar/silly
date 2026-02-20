@@ -6,6 +6,7 @@ import { toastWithSound as toast } from "@/lib/toast-with-sound";
 import { joinPath, sanitizePath } from "@/lib/utils";
 import { app } from "@/lib/rpc";
 import { logger } from "@/lib/logger";
+import { main } from "@/types/models";
 import type { TrackMetadata } from "@/types/api";
 function getFirstArtist(artistString: string): string {
   if (!artistString) return artistString;
@@ -40,27 +41,23 @@ interface FileExistenceResult {
 const CheckFilesExistence = (
   outputDir: string,
   rootDir: string,
-  tracks: CheckFileExistenceRequest[],
-): Promise<FileExistenceResult[]> =>
-  (window as any)["go"]["main"]["App"]["CheckFilesExistence"](
-    outputDir,
-    rootDir,
-    tracks,
-  );
+  tracks: main.CheckFileExistenceRequest[],
+): Promise<FileExistenceResult[]> => {
+  return app.CheckFilesExistence(outputDir, rootDir, tracks);
+};
 
-const SkipDownloadItem = (itemID: string, filePath: string): Promise<void> =>
-  (window as any)["go"]["main"]["App"]["SkipDownloadItem"](itemID, filePath);
+const SkipDownloadItem = (itemID: string, filePath: string): Promise<void> => {
+  return app.SkipDownloadItem(itemID, filePath);
+};
 
 const CreateM3U8File = (
   playlistName: string,
   outputDir: string,
   filePaths: string[],
-): Promise<void> =>
-  (window as any)["go"]["main"]["App"]["CreateM3U8File"](
-    playlistName,
-    outputDir,
-    filePaths,
-  );
+): Promise<void> => {
+  return app.CreateM3U8File(playlistName, outputDir, filePaths);
+};
+
 export function useDownload(region: string) {
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -237,7 +234,7 @@ export function useDownload(region: string) {
       if (spotifyId) {
         try {
           const urlsJson = await app.GetStreamingURLs(spotifyId, region);
-          streamingURLs = JSON.parse(urlsJson);
+          streamingURLs = urlsJson;
         } catch (err) {
           console.error("Failed to get streaming URLs:", err);
         }
@@ -536,7 +533,7 @@ export function useDownload(region: string) {
       if (spotifyId) {
         try {
           const urlsJson = await app.GetStreamingURLs(spotifyId, region);
-          streamingURLs = JSON.parse(urlsJson);
+          streamingURLs = urlsJson;
         } catch (err) {
           console.error("Failed to get streaming URLs:", err);
         }

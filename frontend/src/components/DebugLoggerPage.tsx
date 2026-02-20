@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Trash2, Copy, Check, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logger, type LogEntry } from "@/lib/logger";
-import { ExportFailedDownloads } from "../../wailsjs/go/main/App";
+import { app } from "@/lib/rpc";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 const levelColors: Record<string, string> = {
   info: "text-blue-500",
@@ -20,26 +20,29 @@ function formatTime(date: Date): string {
   });
 }
 export function DebugLoggerPage() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(() => logger.getLogs());
   const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const unsubscribe = logger.subscribe(() => {
       setLogs(logger.getLogs());
     });
-    setLogs(logger.getLogs());
     return () => {
       unsubscribe();
     };
   }, []);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [logs]);
+
   const handleClear = () => {
     logger.clear();
   };
+
   const handleCopy = async () => {
     const logText = logs
       .map(
@@ -54,9 +57,10 @@ export function DebugLoggerPage() {
       console.error("Failed to copy logs:", err);
     }
   };
+
   const handleExportFailed = async () => {
     try {
-      const message = await ExportFailedDownloads();
+      const message = await app.ExportFailedDownloads();
       if (message.startsWith("Successfully")) {
         toast.success(message);
       } else if (message !== "Export cancelled") {
@@ -67,6 +71,7 @@ export function DebugLoggerPage() {
       toast.error(`Failed to export: ${error}`);
     }
   };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

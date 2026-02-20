@@ -38,6 +38,8 @@ func main() {
 	registry["CreateM3U8File"] = Wrap(app.CreateM3U8File)
 	registry["DeleteDownloadHistoryItem"] = Wrap(app.DeleteDownloadHistoryItem)
 	registry["DeleteFetchHistoryItem"] = Wrap(app.DeleteFetchHistoryItem)
+	registry["ClearFetchHistoryByType"] = Wrap(app.ClearFetchHistoryByType)
+	registry["AddFetchHistory"] = Wrap(app.AddFetchHistory)
 	registry["DownloadAvatar"] = Wrap(app.DownloadAvatar)
 	registry["DownloadCover"] = Wrap(app.DownloadCover)
 	registry["DownloadGalleryImage"] = Wrap(app.DownloadGalleryImage)

@@ -181,6 +181,7 @@ export interface AnalysisResult {
   rms_level: number;
   spectrum?: SpectrumData;
 }
+
 export interface LyricsDownloadRequest {
   spotify_id: string;
   track_name: string;
@@ -195,6 +196,7 @@ export interface LyricsDownloadRequest {
   use_album_track_number?: boolean;
   disc_number?: number;
 }
+
 export interface LyricsDownloadResponse {
   success: boolean;
   message: string;
@@ -202,6 +204,7 @@ export interface LyricsDownloadResponse {
   error?: string;
   already_exists?: boolean;
 }
+
 export interface TrackAvailability {
   spotify_id: string;
   tidal: boolean;
@@ -211,6 +214,7 @@ export interface TrackAvailability {
   amazon_url?: string;
   qobuz_url?: string;
 }
+
 export interface CoverDownloadRequest {
   cover_url: string;
   track_name: string;
@@ -224,6 +228,7 @@ export interface CoverDownloadRequest {
   position?: number;
   disc_number?: number;
 }
+
 export interface CoverDownloadResponse {
   success: boolean;
   message: string;
@@ -231,11 +236,13 @@ export interface CoverDownloadResponse {
   error?: string;
   already_exists?: boolean;
 }
+
 export interface HeaderDownloadRequest {
   header_url: string;
   artist_name: string;
   output_dir?: string;
 }
+
 export interface HeaderDownloadResponse {
   success: boolean;
   message: string;
@@ -243,12 +250,14 @@ export interface HeaderDownloadResponse {
   error?: string;
   already_exists?: boolean;
 }
+
 export interface GalleryImageDownloadRequest {
   image_url: string;
   artist_name: string;
   image_index: number;
   output_dir?: string;
 }
+
 export interface GalleryImageDownloadResponse {
   success: boolean;
   message: string;
@@ -256,11 +265,13 @@ export interface GalleryImageDownloadResponse {
   error?: string;
   already_exists?: boolean;
 }
+
 export interface AvatarDownloadRequest {
   avatar_url: string;
   artist_name: string;
   output_dir?: string;
 }
+
 export interface AvatarDownloadResponse {
   success: boolean;
   message: string;

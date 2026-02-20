@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { openExternal } from "@/lib/utils";
@@ -35,7 +36,6 @@ import BmcLogo from "@/assets/bmc-logo.svg";
 import KofiLogo from "@/assets/kofi_symbol.svg";
 import { langColors } from "@/assets/github-lang-colors";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DragDropMedia } from "./DragDropTextarea";
 interface AboutPageProps {
   version: string;
 }
@@ -48,11 +48,12 @@ export function AboutPage({ version }: AboutPageProps) {
   const [bugType, setBugType] = useState("Track");
   const [problem, setProblem] = useState("");
   const [spotifyUrl, setSpotifyUrl] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [bugContext, setBugContext] = useState("");
   const [featureDesc, setFeatureDesc] = useState("");
   const [useCase, setUseCase] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [featureContext, setFeatureContext] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [repoStats, setRepoStats] = useState<Record<string, any>>({});
   useEffect(() => {
     const fetchOS = async () => {
@@ -107,7 +108,6 @@ export function AboutPage({ version }: AboutPageProps) {
         { name: "SpotiFLAC-Next", owner: "spotiverse" },
         { name: "Twitter-X-Media-Batch-Downloader", owner: "afkarxyz" },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stats: Record<string, any> = {};
       for (const repo of repos) {
         try {
@@ -134,16 +134,13 @@ export function AboutPage({ version }: AboutPageProps) {
             let totalDownloads = 0;
             let latestDownloads = 0;
             if (releases.length > 0) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               latestDownloads =
                 releases[0].assets?.reduce(
                   (sum: number, asset: any) =>
                     sum + (asset.download_count || 0),
                   0,
                 ) || 0;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               totalDownloads = releases.reduce((sum: number, release: any) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return (
                   sum +
                   (release.assets?.reduce(
@@ -154,7 +151,6 @@ export function AboutPage({ version }: AboutPageProps) {
               }, 0);
             }
             const topLangs = Object.entries(languages)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               .sort(([, a]: any, [, b]: any) => b - a)
               .slice(0, 4)
               .map(([lang]) => lang);
@@ -352,14 +348,6 @@ ${contextContent}`;
                       onChange={(e) => setProblem(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2 flex flex-col">
-                    <Label>Additional Context</Label>
-                    <DragDropMedia
-                      className="min-h-[14rem]"
-                      value={bugContext}
-                      onChange={setBugContext}
-                    />
-                  </div>
                   <div className="space-y-4 flex flex-col">
                     <div className="space-y-2">
                       <Label>Type</Label>
@@ -445,14 +433,6 @@ ${contextContent}`;
                       placeholder="How would this feature be useful?"
                       value={useCase}
                       onChange={(e) => setUseCase(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2 flex-col">
-                    <Label>Additional Context</Label>
-                    <DragDropMedia
-                      className="min-h-[14rem]"
-                      value={featureContext}
-                      onChange={setFeatureContext}
                     />
                   </div>
                 </div>

@@ -60,8 +60,8 @@ export function usePreview() {
       });
       setCurrentAudio(audio);
       await audio.play();
-    } catch (error: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error("Preview error:", error);
       toast.error("Preview not available", {
         description:

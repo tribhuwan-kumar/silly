@@ -21,7 +21,8 @@ export function useDownloadProgress() {
         console.error("Failed to get download progress:", error);
       }
     };
-    intervalRef.current = window.setInterval(pollProgress, 200);
+    // later set it correctly
+    intervalRef.current = window.setInterval(pollProgress, 5000);
     pollProgress();
     return () => {
       if (intervalRef.current) {

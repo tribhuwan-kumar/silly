@@ -20,14 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  GetDownloadQueue,
-  ClearCompletedDownloads,
-  ClearAllDownloads,
-  ExportFailedDownloads,
-} from "../../wailsjs/go/main/App";
+import { app } from "@/lib/rpc";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
-import { backend } from "../../wailsjs/go/models";
+import { backend } from "@/types/models";
 interface DownloadQueueProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,20 +45,21 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
     if (!isOpen) return;
     const fetchQueue = async () => {
       try {
-        const info = await GetDownloadQueue();
+        const info = await app.GetDownloadQueue();
         setQueueInfo(info);
       } catch (error) {
         console.error("Failed to get download queue:", error);
       }
     };
     fetchQueue();
-    const interval = setInterval(fetchQueue, 500);
+    // later set it correctly
+    const interval = setInterval(fetchQueue, 5000);
     return () => clearInterval(interval);
   }, [isOpen]);
   const handleClearHistory = async () => {
     try {
-      await ClearCompletedDownloads();
-      const info = await GetDownloadQueue();
+      await app.ClearCompletedDownloads();
+      const info = await app.GetDownloadQueue();
       setQueueInfo(info);
     } catch (error) {
       console.error("Failed to clear history:", error);
@@ -71,8 +67,8 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
   };
   const handleReset = async () => {
     try {
-      await ClearAllDownloads();
-      const info = await GetDownloadQueue();
+      await app.ClearAllDownloads();
+      const info = await app.GetDownloadQueue();
       setQueueInfo(info);
       toast.success("Download queue reset");
     } catch (error) {
@@ -81,7 +77,7 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
   };
   const handleExportFailed = async () => {
     try {
-      const message = await ExportFailedDownloads();
+      const message = await app.ExportFailedDownloads();
       if (message.startsWith("Successfully")) {
         toast.success(message);
       } else if (message !== "Export cancelled") {
@@ -125,25 +121,34 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
       </Badge>
     );
   };
-  const formatDuration = (startTimestamp: number) => {
+
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  const formatDuration = (startTimestamp: number, currentTime: number) => {
     if (startTimestamp === 0) return "—";
-    const now = Math.floor(Date.now() / 1000);
-    const durationSeconds = now - startTimestamp;
+    const durationSeconds = Math.max(0, currentTime - startTimestamp);
     const hours = Math.floor(durationSeconds / 3600);
     const minutes = Math.floor((durationSeconds % 3600) / 60);
     const seconds = durationSeconds % 60;
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    } else {
-      return `${seconds}s`;
-    }
+
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Math.floor(Date.now() / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const toggleFilter = (status: string) => {
     setFilterStatus((prev) => (prev === status ? "all" : status));
   };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredQueue = queueInfo.queue.filter((item: any) => {
     if (filterStatus === "all") return true;
     return item.status === filterStatus;
@@ -254,7 +259,7 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
               <span className="text-muted-foreground">Duration:</span>
               <span className="font-semibold font-mono">
                 {queueInfo.session_start_time > 0
-                  ? formatDuration(queueInfo.session_start_time)
+                  ? formatDuration(queueInfo.session_start_time, now)
                   : "—"}
               </span>
             </div>
@@ -276,6 +281,7 @@ export function DownloadQueue({ isOpen, onClose }: DownloadQueueProps) {
                 </Button>
               </div>
             ) : (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               filteredQueue.map((item: any) => (
                 <div
                   key={item.id}
