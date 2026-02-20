@@ -18,14 +18,6 @@ Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) t
 
 ![Image](https://github.com/user-attachments/assets/adbdc056-bace-44a9-8ba6-898b4526b65a)
 
-### Want to support the project?
-
-_If this software is useful and brings you value,
-consider supporting the project by buying me a coffee.
-Your support helps keep development going._
-
-<iframe src="https://github.com/sponsors/tribhuwan-kumar/card" title="Sponsor tribhuwan-kumar" height="100" width="600" style="border: 0; border-radius: 12px;"></iframe>
-
 ## Disclaimer
 
 This project is for **educational and private use only**. The developer does not condone or encourage copyright infringement.
