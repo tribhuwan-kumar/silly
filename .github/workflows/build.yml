@@ -9,7 +9,7 @@ on:
 env:
   GO_VERSION: '1.25.5'
   BUN_VERSION: 'latest'
-  APP_NAME: Silly
+  APP_NAME: silly
 
 jobs:
 
