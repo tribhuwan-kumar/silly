@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -7,6 +8,9 @@ export default defineConfig(({ command, mode }) => {
   const isDevelopment = (mode === 'development');
   const isProduction = mode === 'production';
   const isBuild = command === 'build';
+  const packageJsonPath = path.resolve(__dirname, "./package.json");
+  const packJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+  const appVersion = packJson.version;
 
   return {
     plugins: [react(), tailwindcss()],
@@ -17,6 +21,9 @@ export default defineConfig(({ command, mode }) => {
     },
     esbuild: {
       drop: isBuild && isProduction ? ['console', 'debugger'] : []
+    },
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
     },
     server: {
       ...(isDevelopment && {
