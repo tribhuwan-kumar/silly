@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useLayoutEffect } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -252,7 +253,7 @@ function App() {
       const filtered = prev.filter((h) => h.url !== item.url);
       const newItem: HistoryItem = {
         ...item,
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         timestamp: Date.now(),
       };
       const updated = [newItem, ...filtered].slice(0, MAX_HISTORY);

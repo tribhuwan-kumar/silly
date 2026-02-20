@@ -12,6 +12,9 @@ export default defineConfig(({ command, mode }) => {
   const packJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
   const appVersion = packJson.version;
 
+  // later sync the versioning
+  // https://github.com/tribhuwan-kumar/silly/releases/tag/v1.2.0
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {

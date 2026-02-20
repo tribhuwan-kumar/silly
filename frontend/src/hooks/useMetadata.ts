@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import { getSettings } from "@/lib/settings";
 import { fetchSpotifyMetadata } from "@/lib/api";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
@@ -63,7 +64,7 @@ export function useMetadata() {
       }
       const jsonStr = JSON.stringify(data);
       await app.AddFetchHistory({
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         url: url,
         type: type,
         name: name,
@@ -76,6 +77,7 @@ export function useMetadata() {
       console.error("Failed to save fetch history:", err);
     }
   };
+
   const fetchMetadataDirectly = async (url: string) => {
     const urlType = getUrlType(url);
     logger.info(`fetching ${urlType} metadata...`);
