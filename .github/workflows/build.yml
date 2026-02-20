@@ -83,9 +83,7 @@ jobs:
       - name: Build Linux aarch64 (musl static)
         run: |
           GOOS=linux GOARCH=arm64 \
-          CGO_ENABLED=1 \
-          CC=aarch64-linux-gnu-gcc \
-          go build -ldflags="-s -w -extldflags '-static'" \
+          go build -ldflags="-s -w" \
           -o dist/${{ env.APP_NAME }}-linux-aarch64
 
       - name: Upload artifacts
