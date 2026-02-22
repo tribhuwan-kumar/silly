@@ -1,6 +1,7 @@
 ## [Setup](https://github.com/tribhuwan-kumar/silly/releases)
 
-Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) to host Silly on your server.
+Providing binary only for linux and windows, since its specifically for hosting on servers
+Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) to host Silly on your server
 
 ## Docker
 
@@ -8,13 +9,12 @@ Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) t
 
 ```
 
-## SystemD
+## Systemd
 
 ```bash
-# check the arch
-curl -LJO https://github.com/tribhuwan-kumar/silly/releases/download/v1.3.0/silly-linux-aarch64
-chmod +x silly-linux-aarch64
-mv silly-linux-aarch64 /usr/local/bin/
+# check the architecture
+curl -LJO https://github.com/tribhuwan-kumar/silly/releases/latest/download/silly-linux-aarch64 && chmod +x silly-linux-aarch64
+mv silly-linux-aarch64 /usr/local/bin/silly
 curl -LJO https://raw.githubusercontent.com/tribhuwan-kumar/silly/refs/heads/web/systemd/silly.service
 mv silly.service /etc/systemd/system/
 systemctl daemon-reload
