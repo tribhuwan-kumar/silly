@@ -6,7 +6,9 @@ Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) t
 ## Docker
 
 ```
-
+git clone https://github.com/tribhuwan-kumar/silly.git && cd silly
+docker run -p 6890:6890 silly:local
+docker build -t silly:local .
 ```
 
 ## Systemd

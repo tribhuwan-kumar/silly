@@ -1,5 +1,15 @@
 # syntax=docker/dockerfile:1
 
+FROM --platform=$BUILDPLATFORM oven/bun:1 AS frontend-builder
+
+WORKDIR /app/frontend
+
+COPY frontend/package.json frontend/bun.lockb* ./
+RUN bun install
+
+COPY frontend/ .
+RUN bun run build
+
 FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
 
 WORKDIR /app
@@ -10,6 +20,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 ARG TARGETOS
 ARG TARGETARCH
