@@ -1025,6 +1025,7 @@ func (a *App) GetConfigPath() (string, error) {
 	return filepath.Join(dir, "config.json"), nil
 }
 
+// merge with watcher settings, fn changed from upstream
 func (a *App) SaveSettings(req SaveSettingsReq) (bool, error) {
 	configPath, err := a.GetConfigPath()
 	if err != nil {
@@ -1032,15 +1033,29 @@ func (a *App) SaveSettings(req SaveSettingsReq) (bool, error) {
 	}
 	dir := filepath.Dir(configPath)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return false, err
+		os.MkdirAll(dir, 0755)
+	}
+
+	var existingConfig map[string]interface{}
+	data, err := os.ReadFile(configPath)
+	if err == nil {
+		json.Unmarshal(data, &existingConfig)
+	}
+
+	if req.Settings == nil {
+		req.Settings = make(map[string]interface{})
+	}
+	
+	if existingConfig != nil {
+		if watchlists, ok := existingConfig["watchlists"]; ok {
+			req.Settings["watchlists"] = watchlists
 		}
 	}
-	data, err := json.MarshalIndent(req.Settings, "", "  ")
+	newData, err := json.MarshalIndent(req.Settings, "", "  ")
 	if err != nil {
 		return false, err
 	}
-	return true, os.WriteFile(configPath, data, 0644)
+	return true, os.WriteFile(configPath, newData, 0644)
 }
 
 func (a *App) LoadSettings() (map[string]interface{}, error) {
@@ -1123,4 +1138,106 @@ func (a *App) GetUserHomeDir(req VoidReq) (string, error) {
 
 func (a *App) GetPathSeparator(req VoidReq) (string, error) {
 	return string(filepath.Separator), nil
+}
+
+
+// playlist watcher, like a daemon
+type AddWatchlistReq struct {
+	SpotifyID     string `json:"spotify_id"`
+	URL           string `json:"url"`
+	Name          string `json:"name"`
+	IntervalHours int    `json:"interval_hours"`
+}
+
+func (a *App) AddToWatchlist(req AddWatchlistReq) (bool, error) {
+	backend.GlobalWatcher.Mu.Lock()
+
+	id := fmt.Sprintf("wl-%d", time.Now().UnixNano())
+	
+	newPlaylist := &backend.WatchedPlaylist{
+		ID:            id,
+		SpotifyID:     req.SpotifyID,
+		URL:           req.URL,
+		Name:          req.Name,
+		IntervalHours: req.IntervalHours,
+		LastChecked:   time.Time{},
+		AddedAt:       time.Now(),
+	}
+	
+	backend.GlobalWatcher.Playlists[id] = newPlaylist
+	backend.GlobalWatcher.Save()
+	
+	backend.GlobalWatcher.Mu.Unlock()
+
+	go backend.GlobalWatcher.SyncPlaylist(newPlaylist)
+
+	return true, nil
+}
+
+type RemoveWatchlistReq struct {
+	ID string `json:"id"`
+}
+
+func (a *App) RemoveFromWatchlist(req RemoveWatchlistReq) (bool, error) {
+	backend.GlobalWatcher.Mu.Lock()
+	defer backend.GlobalWatcher.Mu.Unlock()
+	fmt.Printf("[Watcher] Removed playlist: %s\n", req.ID)
+
+	delete(backend.GlobalWatcher.Playlists, req.ID)
+	backend.GlobalWatcher.Save()
+	return true, nil
+}
+
+func (a *App) GetWatchlists(req VoidReq) ([]*backend.WatchedPlaylist, error) {
+	backend.GlobalWatcher.Mu.RLock()
+	defer backend.GlobalWatcher.Mu.RUnlock()
+
+	list := make([]*backend.WatchedPlaylist, 0, len(backend.GlobalWatcher.Playlists))
+	for _, p := range backend.GlobalWatcher.Playlists {
+		list = append(list, p)
+	}
+	return list, nil
+}
+
+var DownloadJobQueue = make(chan DownloadRequest, 10000)
+
+func (a *App) EnqueueDownloadTrack(req DownloadRequest) (DownloadResponse, error) {
+	if req.ItemID == "" {
+		req.ItemID = fmt.Sprintf("%s-%d", req.SpotifyID, time.Now().UnixNano())
+		backend.AddToQueue(req.ItemID, req.TrackName, req.ArtistName, req.AlbumName, req.SpotifyID)
+	}
+
+	DownloadJobQueue <- req
+
+	return DownloadResponse{
+		Success: true,
+		Message: "Added to background queue",
+		ItemID:  req.ItemID,
+	}, nil
+}
+
+func StartBackgroundWorker(app *App) {
+	go func() {
+		for req := range DownloadJobQueue {
+			backend.GlobalWatcher.Mu.RLock()
+			stillWatching := false
+			for _, p := range backend.GlobalWatcher.Playlists {
+				if p.Name == req.PlaylistName {
+					stillWatching = true
+					break
+				}
+			}
+			backend.GlobalWatcher.Mu.RUnlock()
+			if !stillWatching {
+				fmt.Printf("[Watcher] Skipping %s, playlist %s was removed.\n", req.TrackName, req.PlaylistName)
+				backend.FailDownloadItem(req.ItemID, "Playlist removed from Watchlist")
+				continue
+			}
+
+			_, err := app.DownloadTrack(req)
+			if err != nil {
+				fmt.Printf("[Watcher] Download failed for %s: %v\n", req.TrackName, err)
+			}
+		}
+	}()
 }

@@ -7,6 +7,7 @@ import { FileMusicIcon } from "@/components/ui/file-music";
 import { FilePenIcon } from "@/components/ui/file-pen";
 import { CoffeeIcon } from "@/components/ui/coffee";
 import { BadgeAlertIcon } from "@/components/ui/badge-alert";
+import { Eye } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -25,6 +26,7 @@ export type PageType =
   | "audio-converter"
   | "file-manager"
   | "about"
+  | "watchlist"
   | "history";
 interface SidebarProps {
   currentPage: PageType;
@@ -113,6 +115,22 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
           </TooltipTrigger>
           <TooltipContent side="right">
             <p>File Manager</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <Button
+              variant={currentPage === "watchlist" ? "secondary" : "ghost"}
+              size="icon"
+              className={`h-10 w-10 ${currentPage === "watchlist" ? "bg-primary/10 text-primary hover:bg-primary/20" : "hover:bg-primary/10 hover:text-primary"}`}
+              onClick={() => onPageChange("watchlist")}
+            >
+              <Eye size={20} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Watch playlist</p>
           </TooltipContent>
         </Tooltip>
 

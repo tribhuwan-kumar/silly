@@ -21,6 +21,7 @@ import {
   updateSettings,
 } from "@/lib/settings";
 import { applyTheme } from "@/lib/themes";
+import { WatchlistPage } from "@/components/WatchlistPage";
 import { app } from "./lib/rpc";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 import { TitleBar } from "@/components/TitleBar";
@@ -889,6 +890,8 @@ function App() {
         return <AudioConverterPage />;
       case "file-manager":
         return <FileManagerPage />;
+      case "watchlist":
+        return <WatchlistPage />;
       default:
         return (
           <>

@@ -1,6 +1,6 @@
 ## [Setup](https://github.com/tribhuwan-kumar/silly/releases)
 
-Providing binary only for linux and windows, since its specifically for hosting on servers
+Providing binary only for linux and windows, since its specifically for hosting on servers  
 Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) to host Silly on your server
 
 ## Docker

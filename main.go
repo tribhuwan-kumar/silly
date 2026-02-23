@@ -23,10 +23,12 @@ func main() {
 		panic(err)
 	}
 
+	StartBackgroundWorker(app)
+
 	// Create the registry
 	registry := make(map[string]GenericHandler)
 
-	// Standard Functions (Takes Struct, Returns Data/Error)
+	// Standard functions (takes struct, returns data/error)
 	registry["AddToDownloadQueue"] = Wrap(app.AddToDownloadQueue)
 	registry["AnalyzeMultipleTracks"] = Wrap(app.AnalyzeMultipleTracks)
 	registry["AnalyzeTrack"] = Wrap(app.AnalyzeTrack)
@@ -63,8 +65,14 @@ func main() {
 	registry["SkipDownloadItem"] = Wrap(app.SkipDownloadItem)
 	registry["UploadImage"] = Wrap(app.UploadImage)
 	registry["UploadImageBytes"] = Wrap(app.UploadImageBytes)
+	registry["GetUserHomeDir"] = Wrap(app.GetUserHomeDir)
+	registry["GetPathSeparator"] = Wrap(app.GetPathSeparator)
 
-	// Void Input Functions (No args, Returns Data/Error)
+	registry["AddToWatchlist"] = Wrap(app.AddToWatchlist)
+	registry["RemoveFromWatchlist"] = Wrap(app.RemoveFromWatchlist)
+	registry["GetWatchlists"] = Wrap(app.GetWatchlists)
+
+	// Void input Functions (no args, returns data/error)
 	registry["CancelAllQueuedItems"] = WrapVoid(app.CancelAllQueuedItems)
 	registry["CheckFFmpegInstalled"] = WrapVoid(app.CheckFFmpegInstalled)
 	registry["ClearAllDownloads"] = WrapVoid(app.ClearAllDownloads)
@@ -82,11 +90,6 @@ func main() {
 	registry["IsFFprobeInstalled"] = WrapVoid(app.IsFFprobeInstalled)
 	registry["LoadSettings"] = WrapVoid(app.LoadSettings)
 
-
-	registry["GetUserHomeDir"] = Wrap(app.GetUserHomeDir)
-	registry["GetPathSeparator"] = Wrap(app.GetPathSeparator)
-
-	// Adapter for items that only return data, no error
 	registry["GetDownloadQueue"] = WrapVoid(func() (backend.DownloadQueueInfo, error) {
 		return app.GetDownloadQueue(), nil
 	})
@@ -94,8 +97,46 @@ func main() {
 		return app.GetDownloadProgress(), nil
 	})
 
-	// No Error Return Functions
+	// No error return functions
 	registry["DownloadFFmpeg"] = WrapVoidNoErr(app.DownloadFFmpeg)
+
+	// Daemon
+	backend.InitWatcher(
+		func(url string) (interface{}, error) {
+			return app.GetSpotifyMetadata(SpotifyMetadataRequest{
+				URL:     url,
+				Batch:   false,
+				Delay:   1.0,
+				Timeout: 1000.0,
+			})
+		},
+		func(spotifyID, trackName, artistName, playlistName string) {
+			settings, _ := app.LoadSettings()
+			downloadPath, _ := settings["downloadPath"].(string)
+			if downloadPath == "" { downloadPath = "." }
+
+			service, _ := settings["downloader"].(string)
+			if service == "" || service == "auto" { service = "tidal" }
+
+			embedLyrics, _ := settings["embedLyrics"].(bool)
+			embedCover, _ := settings["embedMaxQualityCover"].(bool)
+
+			req := DownloadRequest{
+				SpotifyID:            spotifyID,
+				TrackName:            trackName,
+				ArtistName:           artistName,
+				PlaylistName:         playlistName,
+				OutputDir:            downloadPath,
+				Service:              service,
+				AudioFormat:          "LOSSLESS",
+				EmbedLyrics:          embedLyrics,
+				EmbedMaxQualityCover: embedCover,
+				AllowFallback:        true,
+			}
+
+			app.EnqueueDownloadTrack(req)
+		},
+		)
 
 	// Web server 
 	mux := http.NewServeMux()

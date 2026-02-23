@@ -465,6 +465,16 @@ export namespace backend {
       return a;
     }
   }
+
+  export interface WatchedPlaylist {
+    id: string;
+    spotify_id: string;
+    url: string;
+    name: string;
+    interval_hours: number;
+    last_checked: string;
+    added_at: string;
+  }
 }
 
 export namespace main {
@@ -821,5 +831,12 @@ export namespace main {
       this.query = source["query"];
       this.limit = source["limit"];
     }
+  }
+
+  export interface AddWatchlistReq {
+    spotify_id: string;
+    url: string;
+    name: string;
+    interval_hours: number;
   }
 }

@@ -1030,6 +1030,7 @@ export function useDownload(region: string) {
       toast.warning(parts.join(", "));
     }
   };
+
   const handleDownloadAll = async (
     tracks: TrackMetadata[],
     folderName?: string,

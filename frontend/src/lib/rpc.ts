@@ -318,6 +318,18 @@ export class AppClient {
   async GetDownloadQueue(): Promise<backend.DownloadQueueInfo> {
     return invoke("GetDownloadQueue");
   }
+
+  async AddToWatchlist(req: main.AddWatchlistReq): Promise<boolean> {
+    return invoke("AddToWatchlist", req);
+  }
+
+  async RemoveFromWatchlist(id: string): Promise<boolean> {
+    return invoke("RemoveFromWatchlist", { id });
+  }
+
+  async GetWatchlists(): Promise<backend.WatchedPlaylist[]> {
+    return invoke("GetWatchlists");
+  }
 }
 
 export const app = new AppClient();
