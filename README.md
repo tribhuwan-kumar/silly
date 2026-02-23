@@ -3,6 +3,10 @@
 Providing binary only for linux and windows, since its specifically for hosting on servers  
 Check out github [releases](https://github.com/tribhuwan-kumar/silly/releases) to host Silly on your server
 
+## Extra feature
+- Monitors your Spotify playlists in real time. whenever a new track is added, it automatically fetches and downloads a local copy complete in FLAC format!!
+
+
 ## Docker
 
 ```
