@@ -75,6 +75,7 @@ export function useDownload(region: string) {
     artists: string;
   } | null>(null);
   const shouldStopDownloadRef = useRef(false);
+
   const downloadWithAutoFallback = async (
     id: string,
     settings: any,
@@ -390,6 +391,7 @@ export function useDownload(region: string) {
     } else if (service === "qobuz") {
       audioFormat = settings.qobuzQuality || "6";
     }
+
     const singleServiceResponse = await downloadTrack({
       service: service as "tidal" | "qobuz" | "amazon",
       query,
@@ -425,6 +427,7 @@ export function useDownload(region: string) {
     }
     return singleServiceResponse;
   };
+
   const downloadWithItemID = async (
     settings: any,
     itemID: string,
@@ -683,6 +686,7 @@ export function useDownload(region: string) {
     } else if (service === "qobuz") {
       audioFormat = settings.qobuzQuality || "6";
     }
+
     const singleServiceResponse = await downloadTrack({
       service: service as "tidal" | "qobuz" | "amazon",
       query,
@@ -710,6 +714,7 @@ export function useDownload(region: string) {
       copyright: copyright,
       publisher: publisher,
     });
+
     if (!singleServiceResponse.success && itemID) {
       await app.MarkDownloadItemFailed(
         itemID,
@@ -718,6 +723,7 @@ export function useDownload(region: string) {
     }
     return singleServiceResponse;
   };
+
   const handleDownloadTrack = async (
     id: string,
     trackName?: string,
@@ -795,6 +801,7 @@ export function useDownload(region: string) {
       setDownloadingTrack(null);
     }
   };
+
   const handleDownloadSelected = async (
     selectedTracks: string[],
     allTracks: TrackMetadata[],
@@ -1089,14 +1096,17 @@ export function useDownload(region: string) {
         audio_format: audioFormat,
       };
     });
+
     const existenceResults = await CheckFilesExistence(
       outputDir,
       settings.downloadPath,
       existenceChecks,
     );
+
     const finalFilePaths: string[] = new Array(tracksWithId.length).fill("");
     const existingSpotifyIDs = new Set<string>();
     const existingFilePaths = new Map<string, string>();
+
     for (let i = 0; i < existenceResults.length; i++) {
       const result = existenceResults[i];
       if (result.exists) {
@@ -1106,7 +1116,9 @@ export function useDownload(region: string) {
       }
     }
     logger.info(`found ${existingSpotifyIDs.size} existing files`);
+
     const itemIDs: string[] = [];
+
     for (const track of tracksWithId) {
       const displayArtist =
         settings.useFirstArtistOnly && track.artists
@@ -1127,15 +1139,19 @@ export function useDownload(region: string) {
         setDownloadedTracks((prev: Set<string>) => new Set(prev).add(trackID));
       }
     }
+
     const tracksToDownload = tracksWithId.filter((track) => {
       const trackID = track.spotify_id || "";
       return !existingSpotifyIDs.has(trackID);
     });
+    
     let successCount = 0;
     let errorCount = 0;
     let skippedCount = existingSpotifyIDs.size;
+
     const total = tracksWithId.length;
     setDownloadProgress(Math.round((skippedCount / total) * 100));
+
     for (let i = 0; i < tracksToDownload.length; i++) {
       if (shouldStopDownloadRef.current) {
         toast.info(
@@ -1221,12 +1237,14 @@ export function useDownload(region: string) {
         Math.min(100, Math.round((completedCount / total) * 100)),
       );
     }
+
     setDownloadingTrack(null);
     setCurrentDownloadInfo(null);
     setIsDownloading(false);
     setBulkDownloadType(null);
     shouldStopDownloadRef.current = false;
     await app.CancelAllQueuedItems();
+
     if (settings.createM3u8File && folderName) {
       try {
         logger.info(`creating m3u8 playlist: ${folderName}`);
@@ -1258,6 +1276,7 @@ export function useDownload(region: string) {
       toast.warning(parts.join(", "));
     }
   };
+  
   const handleStopDownload = () => {
     logger.info("download stopped by user");
     shouldStopDownloadRef.current = true;

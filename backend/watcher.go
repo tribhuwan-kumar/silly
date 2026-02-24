@@ -21,7 +21,8 @@ type WatchedPlaylist struct {
 }
 
 type FetchMetaFunc func(url string) (interface{}, error)
-type DownloadTriggerFunc func(spotifyID, trackName, artistName, playlistName string)
+
+type DownloadTriggerFunc func(spotifyID, trackName, artistName, albumName, coverURL, playlistName string)
 
 type WatcherManager struct {
 	Mu            sync.RWMutex
@@ -172,8 +173,28 @@ func (wm *WatcherManager) SyncPlaylist(p *WatchedPlaylist) {
 			}
 		}
 
+		albumName, _ := track["album_name"].(string)
+		if albumName == "" {
+			if albObj, ok := track["album"].(map[string]interface{}); ok {
+				albumName, _ = albObj["name"].(string)
+			}
+		}
+
+		var coverURL string
+		if imgs, ok := track["images"].(string); ok {
+			coverURL = imgs
+		} else if cover, ok := track["cover_url"].(string); ok {
+			coverURL = cover
+		} else if albObj, ok := track["album"].(map[string]interface{}); ok {
+			if imgsArr, ok := albObj["images"].([]interface{}); ok && len(imgsArr) > 0 {
+				if imgObj, ok := imgsArr[0].(map[string]interface{}); ok {
+					coverURL, _ = imgObj["url"].(string)
+				}
+			}
+		}
+
 		if spotifyID != "" && trackName != "" {
-			wm.triggerDlFunc(spotifyID, trackName, artistName, p.Name)
+			wm.triggerDlFunc(spotifyID, trackName, artistName, albumName, coverURL, p.Name)
 			addedCount++
 		}
 	}

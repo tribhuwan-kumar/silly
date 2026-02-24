@@ -110,7 +110,8 @@ func main() {
 				Timeout: 1000.0,
 			})
 		},
-		func(spotifyID, trackName, artistName, playlistName string) {
+
+		func(spotifyID, trackName, artistName, albumName, coverURL, playlistName string) {
 			settings, _ := app.LoadSettings()
 			downloadPath, _ := settings["downloadPath"].(string)
 			if downloadPath == "" { downloadPath = "." }
@@ -125,6 +126,8 @@ func main() {
 				SpotifyID:            spotifyID,
 				TrackName:            trackName,
 				ArtistName:           artistName,
+				AlbumName:            albumName,
+				CoverURL:             coverURL,
 				PlaylistName:         playlistName,
 				OutputDir:            downloadPath,
 				Service:              service,

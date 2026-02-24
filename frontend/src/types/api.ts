@@ -6,6 +6,7 @@ export interface ArtistSimple {
   name: string;
   external_urls: string;
 }
+
 export interface TrackMetadata {
   artists: string;
   name: string;
@@ -32,9 +33,11 @@ export interface TrackMetadata {
   status?: string;
   is_explicit?: boolean;
 }
+
 export interface TrackResponse {
   track: TrackMetadata;
 }
+
 export interface AlbumInfo {
   total_tracks: number;
   name: string;
@@ -43,10 +46,12 @@ export interface AlbumInfo {
   images: string;
   batch?: string;
 }
+
 export interface AlbumResponse {
   album_info: AlbumInfo;
   track_list: TrackMetadata[];
 }
+
 export interface PlaylistInfo {
   name: string;
   tracks: {
@@ -64,10 +69,12 @@ export interface PlaylistInfo {
   description?: string;
   batch?: string;
 }
+
 export interface PlaylistResponse {
   playlist_info: PlaylistInfo;
   track_list: TrackMetadata[];
 }
+
 export interface ArtistInfo {
   name: string;
   followers: number;
@@ -84,6 +91,7 @@ export interface ArtistInfo {
   rank?: number;
   batch?: string;
 }
+
 export interface DiscographyAlbum {
   id: string;
   name: string;
@@ -94,11 +102,13 @@ export interface DiscographyAlbum {
   images: string;
   external_urls: string;
 }
+
 export interface ArtistDiscographyResponse {
   artist_info: ArtistInfo;
   album_list: DiscographyAlbum[];
   track_list: TrackMetadata[];
 }
+
 export interface ArtistResponse {
   artist: {
     name: string;
@@ -109,12 +119,14 @@ export interface ArtistResponse {
     popularity: number;
   };
 }
+
 export type SpotifyMetadataResponse =
   | TrackResponse
   | AlbumResponse
   | PlaylistResponse
   | ArtistDiscographyResponse
   | ArtistResponse;
+
 export interface DownloadRequest {
   service: "tidal" | "qobuz" | "amazon";
   query?: string;
@@ -147,6 +159,7 @@ export interface DownloadRequest {
   spotify_url?: string;
   use_first_artist_only?: boolean;
 }
+
 export interface DownloadResponse {
   success: boolean;
   message: string;
@@ -155,14 +168,17 @@ export interface DownloadResponse {
   already_exists?: boolean;
   item_id?: string;
 }
+
 export interface HealthResponse {
   status: string;
   time: string;
 }
+
 export interface TimeSlice {
   time: number;
   magnitudes: number[];
 }
+
 export interface SpectrumData {
   time_slices: TimeSlice[];
   sample_rate: number;
@@ -170,6 +186,7 @@ export interface SpectrumData {
   duration: number;
   max_freq: number;
 }
+
 export interface AnalysisResult {
   file_path: string;
   file_size: number;
@@ -282,6 +299,7 @@ export interface AvatarDownloadResponse {
   error?: string;
   already_exists?: boolean;
 }
+
 export interface AudioMetadata {
   title: string;
   artist: string;
