@@ -32,7 +32,7 @@ import SpotubeDLIcon from "@/assets/icons/spotubedl.svg";
 import SpotiDownloaderIcon from "@/assets/icons/spotidownloader.svg";
 import XBatchDLIcon from "@/assets/icons/xbatchdl.svg";
 import SpotiFLACNextIcon from "@/assets/icons/next.svg";
-import BmcLogo from "@/assets/bmc-logo.svg";
+import BmcLogo from "@/assets/bmc-logo-side-white.svg";
 import KofiLogo from "@/assets/kofi_symbol.svg";
 import { langColors } from "@/assets/github-lang-colors";
 import { ScrollArea } from "@/components/ui/scroll-area";

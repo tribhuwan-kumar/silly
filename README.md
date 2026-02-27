@@ -17,6 +17,13 @@ docker run -p 6890:6890 silly:local
 
 ## Systemd
 
+one liner setp:
+
+```
+curl -sSL https://raw.githubusercontent.com/tribhuwan-kumar/silly/refs/heads/main/setup.sh | bash
+```
+
+manual setup:
 ```bash
 # check the architecture
 curl -LJO https://github.com/tribhuwan-kumar/silly/releases/latest/download/silly-linux-aarch64 && chmod +x silly-linux-aarch64

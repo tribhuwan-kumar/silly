@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { openExternal } from "@/lib/utils";
-import BmcLogo from "@/assets/bmc-logo-side.svg";
+import BmcLogo from "@/assets/bmc-logo-side-white.svg";
 import BmcLogoWhite from "@/assets/bmc-logo-side-white.svg";
 import KofiLogo from "@/assets/kofi_symbol.svg";
 export type PageType =

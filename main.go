@@ -13,9 +13,6 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-//go:embed wails.json
-var wailsJSON []byte
-
 func main() {
 	app := NewApp()
 	app.startup(context.Background())
