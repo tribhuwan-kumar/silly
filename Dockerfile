@@ -10,11 +10,11 @@ RUN bun install
 COPY frontend/ .
 RUN bun run build
 
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache git
+RUN apk add --no-cache git 
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -32,10 +32,16 @@ RUN CGO_ENABLED=0 \
     go build -ldflags="-s -w" \
     -o silly
 
-FROM gcr.io/distroless/base-debian12
+FROM debian:12-slim
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd -u 1000 -m nonroot
 
 WORKDIR /app
-
 COPY --from=builder /app/silly /usr/local/bin/silly
 
 EXPOSE 6890
