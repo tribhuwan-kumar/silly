@@ -1,0 +1,10 @@
+services:
+  spotiflac:
+    image: silly:local
+    container_name: spotiflac
+    restart: unless-stopped
+    ports:
+      - "6890:6890"
+    volumes:
+      - /path/to/music:/home/nonroot/Music
+      - /path/to/config:/home/nonroot/.silly
