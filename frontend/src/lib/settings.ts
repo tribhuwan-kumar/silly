@@ -186,6 +186,7 @@ export const TEMPLATE_VARIABLES = [
   { key: "{disc}", description: "Disc number", example: "1" },
   { key: "{year}", description: "Release year", example: "2014" },
 ];
+
 function detectOS(): "Windows" | "linux/MacOS" {
   const platform = window.navigator.platform.toLowerCase();
   if (platform.includes("win")) {
@@ -193,6 +194,7 @@ function detectOS(): "Windows" | "linux/MacOS" {
   }
   return "linux/MacOS";
 }
+
 export const DEFAULT_SETTINGS: Settings = {
   downloadPath: "",
   downloader: "auto",
