@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -9,6 +12,14 @@ import (
 	"os"
 	"silly/backend"
 )
+
+func generateSessionToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+var currentSessionToken = generateSessionToken()
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -144,7 +155,84 @@ func main() {
 	// Web server 
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/api/auth/status", func(w http.ResponseWriter, r *http.Request) {
+		settings, _ := app.LoadSettings()
+		appPassword, _ := settings["appPassword"].(string)
+
+		isPasswordSet := appPassword != ""
+		authenticated := false
+
+		if isPasswordSet {
+			cookie, err := r.Cookie("session_token")
+			if err == nil && cookie.Value == currentSessionToken && currentSessionToken != "" {
+				authenticated = true
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{
+			"is_password_set": isPasswordSet,
+			"authenticated":   authenticated,
+		})
+	})
+
+	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Password string `json:"password"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+
+		if req.Password == "" {
+			http.Error(w, "Password cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		settings, _ := app.LoadSettings()
+		if settings == nil {
+			settings = make(map[string]interface{})
+		}
+		appPassword, _ := settings["appPassword"].(string)
+
+		if appPassword == "" {
+			settings["appPassword"] = req.Password
+			_, err := app.SaveSettings(SaveSettingsReq{Settings: settings})
+			if err != nil {
+				http.Error(w, "Failed to save config", http.StatusInternalServerError)
+				return
+			}
+		} else if appPassword != req.Password {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_token",
+			Value:    currentSessionToken,
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   86400 * 15, // 15 days
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	})
+
 	mux.HandleFunc("/api/rpc", func(w http.ResponseWriter, r *http.Request) {
+		settings, _ := app.LoadSettings()
+		if appPassword, ok := settings["appPassword"].(string); ok && appPassword != "" {
+			cookie, err := r.Cookie("session_token")
+			if err != nil || cookie.Value != currentSessionToken {
+				http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+				return
+			}
+		}
+		// If authenticated or auth is disabled, process the RPC
 		HandleRPC(registry, w, r)
 	})
 

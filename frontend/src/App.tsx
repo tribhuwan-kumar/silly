@@ -39,6 +39,7 @@ import { FileManagerPage } from "@/components/FileManagerPage";
 import { SettingsPage } from "@/components/SettingsPage";
 import { DebugLoggerPage } from "@/components/DebugLoggerPage";
 import { AboutPage } from "@/components/AboutPage";
+import { LockScreen } from "./components/Lock";
 import { HistoryPage } from "@/components/HistoryPage";
 import type { HistoryItem } from "@/components/FetchHistory";
 import { useDownload } from "@/hooks/useDownload";
@@ -61,6 +62,7 @@ function App() {
   const [releaseDate, setReleaseDate] = useState<string | null>(null);
   const [fetchHistory, setFetchHistory] = useState<HistoryItem[]>([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [authStatus, setAuthStatus] = useState({ loading: true, isPasswordSet: false, authenticated: false, });
   const [region, setRegion] = useState(
     () => localStorage.getItem("silly_region") || "US",
   );
@@ -978,6 +980,39 @@ function App() {
         );
     }
   };
+
+  useEffect(() => {
+    fetch("/api/auth/status")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data)
+        setAuthStatus({
+          loading: false,
+          isPasswordSet: data.is_password_set,
+          authenticated: data.authenticated,
+        });
+      })
+      .catch(() => {
+        setAuthStatus({ loading: false, isPasswordSet: false, authenticated: false });
+      });
+  }, []);
+
+  if (authStatus.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!authStatus.authenticated) {
+    return (
+      <LockScreen
+        isSetup={!authStatus.isPasswordSet} 
+        onUnlock={() => setAuthStatus({ ...authStatus, authenticated: true, isPasswordSet: true })} 
+      />
+    );
+  }
 
   return (
     <TooltipProvider>
