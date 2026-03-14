@@ -40,6 +40,8 @@ systemctl start silly
 
 ## Disclaimer
 
+### Don't expose to internet as its doesn't supports `https` and only meant to be used in home lab
+
 This project is for **educational and private use only**. The developer does not condone or encourage copyright infringement.
 
 **Silly** is a third-party tool and is not affiliated with, endorsed by, or connected to Spotify, Tidal, Qobuz, Amazon Music, or any other streaming service.
