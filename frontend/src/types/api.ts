@@ -128,36 +128,40 @@ export type SpotifyMetadataResponse =
   | ArtistResponse;
 
 export interface DownloadRequest {
-  service: "tidal" | "qobuz" | "amazon";
-  query?: string;
-  track_name?: string;
-  artist_name?: string;
-  album_name?: string;
-  album_artist?: string;
-  release_date?: string;
-  cover_url?: string;
-  api_url?: string;
-  output_dir?: string;
-  audio_format?: string;
-  folder_name?: string;
-  filename_format?: string;
-  track_number?: boolean;
-  position?: number;
-  use_album_track_number?: boolean;
-  spotify_id?: string;
-  embed_lyrics?: boolean;
-  embed_max_quality_cover?: boolean;
-  service_url?: string;
-  duration?: number;
-  item_id?: string;
-  spotify_track_number?: number;
-  spotify_disc_number?: number;
-  spotify_total_tracks?: number;
-  spotify_total_discs?: number;
-  copyright?: string;
-  publisher?: string;
-  spotify_url?: string;
-  use_first_artist_only?: boolean;
+    service: "tidal" | "qobuz" | "amazon";
+    query?: string;
+    track_name?: string;
+    artist_name?: string;
+    album_name?: string;
+    album_artist?: string;
+    release_date?: string;
+    cover_url?: string;
+    tidal_api_url?: string;
+    tidal_variant?: "tidal" | "alt";
+    output_dir?: string;
+    audio_format?: string;
+    folder_name?: string;
+    filename_format?: string;
+    track_number?: boolean;
+    position?: number;
+    use_album_track_number?: boolean;
+    spotify_id?: string;
+    embed_lyrics?: boolean;
+    embed_max_quality_cover?: boolean;
+    service_url?: string;
+    duration?: number;
+    item_id?: string;
+    spotify_track_number?: number;
+    spotify_disc_number?: number;
+    spotify_total_tracks?: number;
+    spotify_total_discs?: number;
+    isrc?: string;
+    copyright?: string;
+    publisher?: string;
+    spotify_url?: string;
+    use_first_artist_only?: boolean;
+    use_single_genre?: boolean;
+    embed_genre?: boolean;
 }
 
 export interface DownloadResponse {
@@ -173,10 +177,15 @@ export interface HealthResponse {
   status: string;
   time: string;
 }
-
+export interface CurrentIPInfo {
+    ip: string;
+    country: string;
+    country_code?: string;
+    source?: string;
+}
 export interface TimeSlice {
-  time: number;
-  magnitudes: number[];
+    time: number;
+    magnitudes: number[] | Float32Array;
 }
 
 export interface SpectrumData {
@@ -188,33 +197,39 @@ export interface SpectrumData {
 }
 
 export interface AnalysisResult {
-  file_path: string;
-  file_size: number;
-  sample_rate: number;
-  channels: number;
-  bits_per_sample: number;
-  total_samples: number;
-  duration: number;
-  bit_depth: string;
-  dynamic_range: number;
-  peak_amplitude: number;
-  rms_level: number;
-  spectrum?: SpectrumData;
+    file_path: string;
+    file_size: number;
+    file_type?: "FLAC" | "MP3" | "M4A" | "AAC";
+    sample_rate: number;
+    channels: number;
+    bits_per_sample: number;
+    total_samples: number;
+    duration: number;
+    bit_depth: string;
+    dynamic_range: number;
+    peak_amplitude: number;
+    rms_level: number;
+    codec_mode?: string;
+    bitrate_kbps?: number;
+    total_frames?: number;
+    codec_version?: string;
+    spectrum?: SpectrumData;
 }
 
 export interface LyricsDownloadRequest {
-  spotify_id: string;
-  track_name: string;
-  artist_name: string;
-  album_name?: string;
-  album_artist?: string;
-  release_date?: string;
-  output_dir?: string;
-  filename_format?: string;
-  track_number?: boolean;
-  position?: number;
-  use_album_track_number?: boolean;
-  disc_number?: number;
+    spotify_id: string;
+    track_name: string;
+    artist_name: string;
+    album_name?: string;
+    album_artist?: string;
+    release_date?: string;
+    isrc?: string;
+    output_dir?: string;
+    filename_format?: string;
+    track_number?: boolean;
+    position?: number;
+    use_album_track_number?: boolean;
+    disc_number?: number;
 }
 
 export interface LyricsDownloadResponse {
@@ -226,13 +241,13 @@ export interface LyricsDownloadResponse {
 }
 
 export interface TrackAvailability {
-  spotify_id: string;
-  tidal: boolean;
-  amazon: boolean;
-  qobuz: boolean;
-  tidal_url?: string;
-  amazon_url?: string;
-  qobuz_url?: string;
+    spotify_id: string;
+    tidal: boolean;
+    amazon: boolean;
+    qobuz: boolean;
+    tidal_url?: string;
+    amazon_url?: string;
+    qobuz_url?: string;
 }
 
 export interface CoverDownloadRequest {
@@ -301,19 +316,13 @@ export interface AvatarDownloadResponse {
 }
 
 export interface AudioMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  album_artist: string;
-  track_number: number;
-  disc_number: number;
-  year: string;
-}
-
-export interface FileInfo {
-  name: string;
-  is_dir: boolean;
-  size: number;
-  mod_time: string;
-  path: string;
+    title: string;
+    artist: string;
+    album: string;
+    album_artist: string;
+    track_number: number;
+    disc_number: number;
+    year: string;
+    upc?: string;
+    isrc?: string;
 }

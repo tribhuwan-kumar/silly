@@ -206,11 +206,11 @@ export class AppClient {
   }
 
   async ListAudioFilesInDir(dirPath: string): Promise<Array<backend.FileInfo>> {
-    return invoke("ListAudioFilesInDir", { dir_path: dirPath });
+    return invoke("ListAudioFilesInDir", { dirPath });
   }
 
   async ListDirectoryFiles(dirPath: string): Promise<Array<backend.FileInfo>> {
-    return invoke("ListDirectoryFiles", { dir_path: dirPath });
+    return invoke("ListDirectoryFiles", { dirPath });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -330,6 +330,23 @@ export class AppClient {
   async GetWatchlists(): Promise<backend.WatchedPlaylist[]> {
     return invoke("GetWatchlists");
   }
+
+  async CheckAPIStatus(apiType: string, apiURL: string): Promise<boolean> {
+    return invoke("CheckAPIStatus", { apiType, apiURL });
+  }
+
+  async GetRecentFetches(): Promise<string> {
+    return invoke("GetRecentFetches");
+  }
+
+  async SaveRecentFetches(payload: string): Promise<void> {
+    return invoke("SaveRecentFetches", { payload });
+  }
+
+  async GetCurrentIPInfo(): Promise<string> {
+    return invoke("GetCurrentIPInfo");
+  }
+
 }
 
 export const app = new AppClient();

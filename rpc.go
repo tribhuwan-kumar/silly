@@ -45,6 +45,31 @@ func WrapVoidNoErr[R any](f func() R) GenericHandler {
 	}
 }
 
+func WrapNoArg(f func()) GenericHandler {
+	return func(_ json.RawMessage) (interface{}, error) {
+		f()
+		return struct{}{}, nil
+	}
+}
+
+func WrapNoArgErr(f func() error) GenericHandler {
+	return func(_ json.RawMessage) (interface{}, error) {
+		return struct{}{}, f()
+	}
+}
+
+func WrapNoArgRet[R any](f func() R) GenericHandler {
+	return func(_ json.RawMessage) (interface{}, error) {
+		return f(), nil
+	}
+}
+
+func WrapNoArgRetErr[R any](f func() (R, error)) GenericHandler {
+	return func(_ json.RawMessage) (interface{}, error) {
+		return f()
+	}
+}
+
 func HandleRPC(registry map[string]GenericHandler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

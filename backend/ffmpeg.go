@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/ulikunitz/xz"
+	"golang.org/x/text/unicode/norm"
 )
 
 func ValidateExecutable(path string) error {
@@ -57,12 +58,60 @@ func ValidateExecutable(path string) error {
 	return nil
 }
 
-func GetFFmpegDir() (string, error) {
+func GetAppDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 	return filepath.Join(homeDir, ".Silly"), nil
+}
+
+func EnsureAppDir() (string, error) {
+	appDir, err := GetAppDir()
+	if err != nil {
+		return "", err
+	}
+
+	if err := os.MkdirAll(appDir, 0o755); err != nil {
+		return "", fmt.Errorf("failed to create app directory: %w", err)
+	}
+
+	return appDir, nil
+}
+
+func GetFFmpegDir() (string, error) {
+	return EnsureAppDir()
+}
+
+func resolveSystemExecutable(executableName string) string {
+	if runtime.GOOS == "darwin" {
+		candidates := []string{
+			"/opt/homebrew/bin/" + executableName,
+			"/usr/local/bin/" + executableName,
+		}
+		for _, candidate := range candidates {
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
+		}
+	}
+
+	if runtime.GOOS != "windows" {
+		path, err := exec.Command("which", executableName).Output()
+		if err == nil {
+			trimmed := strings.TrimSpace(string(path))
+			if trimmed != "" {
+				return trimmed
+			}
+		}
+	}
+
+	path, err := exec.LookPath(executableName)
+	if err == nil {
+		return path
+	}
+
+	return ""
 }
 
 func GetFFmpegPath() (string, error) {
@@ -76,14 +125,13 @@ func GetFFmpegPath() (string, error) {
 		ffmpegName = "ffmpeg.exe"
 	}
 
+	if path := resolveSystemExecutable(ffmpegName); path != "" {
+		return path, nil
+	}
+
 	localPath := filepath.Join(ffmpegDir, ffmpegName)
 	if _, err := os.Stat(localPath); err == nil {
 		return localPath, nil
-	}
-
-	path, err := exec.LookPath(ffmpegName)
-	if err == nil {
-		return path, nil
 	}
 
 	return localPath, nil
@@ -100,14 +148,13 @@ func GetFFprobePath() (string, error) {
 		ffprobeName = "ffprobe.exe"
 	}
 
+	if path := resolveSystemExecutable(ffprobeName); path != "" {
+		return path, nil
+	}
+
 	localPath := filepath.Join(ffmpegDir, ffprobeName)
 	if _, err := os.Stat(localPath); err == nil {
 		return localPath, nil
-	}
-
-	path, err := exec.LookPath(ffprobeName)
-	if err == nil {
-		return path, nil
 	}
 
 	return localPath, fmt.Errorf("ffprobe not found in app directory or system path")
@@ -143,13 +190,92 @@ func IsFFmpegInstalled() (bool, error) {
 
 	setHideWindow(cmd)
 	err = cmd.Run()
+	if err != nil {
+		return false, nil
+	}
+
+	return IsFFprobeInstalled()
+}
+
+func GetBrewPath() string {
+	brewPaths := []string{
+		"/opt/homebrew/bin/brew",
+		"/usr/local/bin/brew",
+	}
+
+	for _, path := range brewPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+
+	return ""
+}
+
+func IsBrewFFmpegInstalled() (bool, error) {
+	brewPath := GetBrewPath()
+	if brewPath == "" {
+		return false, nil
+	}
+
+	cmd := exec.Command(brewPath, "list", "ffmpeg")
+	setHideWindow(cmd)
+	err := cmd.Run()
 	return err == nil, nil
 }
 
-const (
-	ffmpegWindowsURL = "https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.0/ffmpeg-windows-amd64.zip"
-	ffmpegLinuxURL   = "https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.0/ffmpeg-linux-amd64.tar.xz"
-)
+func InstallFFmpegWithBrew(progressCallback func(int, string)) error {
+	brewPath := GetBrewPath()
+	if brewPath == "" {
+		return fmt.Errorf("brew not found")
+	}
+
+	progressCallback(10, "Installing FFmpeg via Homebrew...")
+
+	cmd := exec.Command(brewPath, "install", "ffmpeg")
+	setHideWindow(cmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to install ffmpeg: %w - %s", err, string(output))
+	}
+
+	progressCallback(100, "done")
+
+	return nil
+}
+
+const ffmpegReleaseBaseURL = "https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.1"
+
+func buildFFmpegReleaseURL(assetName string) string {
+	return ffmpegReleaseBaseURL + "/" + assetName
+}
+
+func getFFmpegDownloadURLs() ([]string, []string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		return []string{buildFFmpegReleaseURL("ffmpeg-windows.zip")}, []string{buildFFmpegReleaseURL("ffprobe-windows.zip")}, nil
+	case "linux":
+		switch runtime.GOARCH {
+		case "amd64":
+			return []string{buildFFmpegReleaseURL("ffmpeg-linux-amd64.zip")}, []string{buildFFmpegReleaseURL("ffprobe-linux-amd64.zip")}, nil
+		case "arm64":
+			return []string{buildFFmpegReleaseURL("ffmpeg-linux-arm64v8.zip")}, []string{buildFFmpegReleaseURL("ffprobe-linux-arm64v8.zip")}, nil
+		default:
+			return nil, nil, fmt.Errorf("unsupported Linux architecture: %s", runtime.GOARCH)
+		}
+	case "darwin":
+		switch runtime.GOARCH {
+		case "amd64":
+			return []string{buildFFmpegReleaseURL("ffmpeg-macos-amd64.zip")}, []string{buildFFmpegReleaseURL("ffprobe-macos-amd64.zip")}, nil
+		case "arm64":
+			return []string{buildFFmpegReleaseURL("ffmpeg-macos-arm64.zip")}, []string{buildFFmpegReleaseURL("ffprobe-macos-arm64.zip")}, nil
+		default:
+			return nil, nil, fmt.Errorf("unsupported macOS architecture: %s", runtime.GOARCH)
+		}
+	default:
+		return nil, nil, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+	}
+}
 
 func DownloadFFmpeg(progressCallback func(int)) error {
 
@@ -167,57 +293,30 @@ func DownloadFFmpeg(progressCallback func(int)) error {
 		return fmt.Errorf("failed to create ffmpeg directory: %w", err)
 	}
 
-	if runtime.GOOS == "darwin" {
-		ffmpegInstalled, _ := IsFFmpegInstalled()
-		ffprobeInstalled, _ := IsFFprobeInstalled()
+	ffmpegInstalled, _ := IsFFmpegInstalled()
+	ffprobeInstalled, _ := IsFFprobeInstalled()
 
-		isARM := runtime.GOARCH == "arm64"
+	ffmpegURLs, ffprobeURLs, err := getFFmpegDownloadURLs()
+	if err != nil {
+		return err
+	}
 
-		var macFFmpegURLs []string
-		var macFFprobeURLs []string
-
-		if isARM {
-
-			macFFmpegURLs = []string{"https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.0/ffmpeg-macos-arm64.zip"}
-			macFFprobeURLs = []string{"https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.0/ffprobe-macos-arm64.zip"}
-		} else {
-
-			macFFmpegURLs = []string{"https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.0/ffmpeg-macos-intel.zip"}
-			macFFprobeURLs = []string{"https://github.com/afkarxyz/ffmpeg-binaries/releases/download/v8.0/ffprobe-macos-intel.zip"}
+	if !ffmpegInstalled && !ffprobeInstalled {
+		if err := downloadWithFallback(ffmpegURLs, ffmpegDir, progressCallback, 0, 50); err != nil {
+			return err
 		}
-
-		if !ffmpegInstalled && !ffprobeInstalled {
-			if err := downloadWithFallback(macFFmpegURLs, ffmpegDir, progressCallback, 0, 50); err != nil {
-				return err
-			}
-			if err := downloadWithFallback(macFFprobeURLs, ffmpegDir, progressCallback, 50, 100); err != nil {
-				return err
-			}
-		} else if !ffmpegInstalled {
-			if err := downloadWithFallback(macFFmpegURLs, ffmpegDir, progressCallback, 0, 100); err != nil {
-				return err
-			}
-		} else if !ffprobeInstalled {
-			if err := downloadWithFallback(macFFprobeURLs, ffmpegDir, progressCallback, 0, 100); err != nil {
-				return err
-			}
+		if err := downloadWithFallback(ffprobeURLs, ffmpegDir, progressCallback, 50, 100); err != nil {
+			return err
 		}
 		return nil
 	}
 
-	var url string
-	switch runtime.GOOS {
-	case "windows":
-		url = ffmpegWindowsURL
-	case "linux":
-		url = ffmpegLinuxURL
-	default:
-		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+	if !ffmpegInstalled {
+		return downloadWithFallback(ffmpegURLs, ffmpegDir, progressCallback, 0, 100)
 	}
 
-	fmt.Printf("[FFmpeg] Downloading from: %s\n", url)
-	if err := downloadAndExtract(url, ffmpegDir, progressCallback, 0, 100); err != nil {
-		return err
+	if !ffprobeInstalled {
+		return downloadWithFallback(ffprobeURLs, ffmpegDir, progressCallback, 0, 100)
 	}
 
 	return nil
@@ -251,7 +350,7 @@ func downloadAndExtract(url, destDir string, progressCallback func(int), progres
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -343,10 +442,13 @@ func downloadAndExtract(url, destDir string, progressCallback func(int), progres
 	}
 	fmt.Printf("[FFmpeg] Extracting...\n")
 
-	if strings.HasSuffix(url, ".tar.xz") || runtime.GOOS == "linux" {
+	if strings.HasSuffix(url, ".tar.xz") {
 		return extractTarXz(tmpFile.Name(), destDir)
 	}
-	return extractZip(tmpFile.Name(), destDir)
+	if strings.HasSuffix(url, ".zip") {
+		return extractZip(tmpFile.Name(), destDir)
+	}
+	return fmt.Errorf("unsupported archive format for %s", url)
 }
 
 func extractZip(zipPath, destDir string) error {
@@ -559,6 +661,7 @@ func ConvertAudio(req ConvertAudioRequest) ([]ConvertAudioResult, error) {
 
 			outputExt := "." + strings.ToLower(req.OutputFormat)
 			outputFile := filepath.Join(outputDir, baseName+outputExt)
+			outputFile = norm.NFC.String(outputFile)
 
 			if inputExt == outputExt {
 				result.Error = "Input and output formats are the same"
@@ -580,7 +683,11 @@ func ConvertAudio(req ConvertAudioRequest) ([]ConvertAudioResult, error) {
 				fmt.Printf("[FFmpeg] Warning: Failed to extract metadata from %s: %v\n", inputFile, err)
 			}
 
-			coverArtPath, _ = ExtractCoverArt(inputFile)
+			inputFile = norm.NFC.String(inputFile)
+			coverArtPath, err = ExtractCoverArt(inputFile)
+			if err != nil {
+				fmt.Printf("[FFmpeg] Warning: Failed to extract cover art from %s: %v\n", inputFile, err)
+			}
 			lyrics, err = ExtractLyrics(inputFile)
 			if err != nil {
 				fmt.Printf("[FFmpeg] Warning: Failed to extract lyrics from %s: %v\n", inputFile, err)

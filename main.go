@@ -23,6 +23,80 @@ var currentSessionToken = generateSessionToken()
 
 //go:embed all:frontend/dist
 var assets embed.FS
+// func (a *App) GetRecentFetches() (string, error) {
+
+type AddToDownloadQueueReq struct {
+	SpotifyID  string `json:"spotifyID"`
+	TrackName  string `json:"trackName"`
+	ArtistName string `json:"artistName"`
+	AlbumName  string `json:"albumName"`
+}
+
+type CheckFilesExistenceReq struct {
+	OutputDir string                      `json:"outputDir"`
+	RootDir   string                      `json:"rootDir"`
+	Tracks    []CheckFileExistenceRequest `json:"tracks"`
+}
+
+type CreateM3U8FileReq struct {
+	M3U8Name  string   `json:"m3u8Name"`
+	OutputDir string   `json:"outputDir"`
+	FilePaths []string `json:"filePaths"`
+}
+
+type DeleteByIDReq struct {
+	ID string `json:"id"`
+}
+
+type ClearFetchHistoryByTypeReq struct {
+	ItemType string `json:"itemType"`
+}
+
+type FilesReq struct {
+	Files []string `json:"files"`
+}
+
+type StreamingURLsReq struct {
+	SpotifyTrackID string `json:"spotifyTrackID"`
+	Region         string `json:"region"`
+}
+
+type MarkDownloadItemFailedReq struct {
+	ItemID   string `json:"itemID"`
+	ErrorMsg string `json:"errorMsg"`
+}
+
+type FilesFormatReq struct {
+	Files  []string `json:"files"`
+	Format string   `json:"format"`
+}
+
+type RenameFileToReq struct {
+	OldPath string `json:"oldPath"`
+	NewName string `json:"newName"`
+}
+
+type SaveSettingsReq struct {
+	Settings map[string]interface{} `json:"settings"`
+}
+
+type SaveRecentFetchesReq struct {
+	Payload string `json:"payload"`
+}
+
+type SkipDownloadItemReq struct {
+	ItemID   string `json:"itemID"`
+	FilePath string `json:"filePath"`
+}
+
+type CheckAPIStatusReq struct {
+	APIType string `json:"apiType"`
+	APIURL  string `json:"apiURL"`
+}
+
+type ListDirectoryFilesReq struct {
+	DirPath string `json:"dirPath"`
+}
 
 func main() {
 	app := NewApp()
@@ -40,42 +114,110 @@ func main() {
 	registry := make(map[string]GenericHandler)
 
 	// Standard functions (takes struct, returns data/error)
-	registry["AddToDownloadQueue"] = Wrap(app.AddToDownloadQueue)
-	registry["AnalyzeMultipleTracks"] = Wrap(app.AnalyzeMultipleTracks)
-	registry["AnalyzeTrack"] = Wrap(app.AnalyzeTrack)
-	registry["CheckFilesExistence"] = Wrap(app.CheckFilesExistence)
+	registry["AddToDownloadQueue"] = Wrap(func(req AddToDownloadQueueReq) (string, error) {
+		return app.AddToDownloadQueue(req.SpotifyID, req.TrackName, req.ArtistName, req.AlbumName), nil
+	})
+	registry["CheckFilesExistence"] = Wrap(func(req CheckFilesExistenceReq) ([]CheckFileExistenceResult, error) {
+		return app.CheckFilesExistence(req.OutputDir, req.RootDir, req.Tracks), nil
+	})
 	registry["CheckTrackAvailability"] = Wrap(app.CheckTrackAvailability)
 	registry["ConvertAudio"] = Wrap(app.ConvertAudio)
-	registry["CreateM3U8File"] = Wrap(app.CreateM3U8File)
-	registry["DeleteDownloadHistoryItem"] = Wrap(app.DeleteDownloadHistoryItem)
-	registry["DeleteFetchHistoryItem"] = Wrap(app.DeleteFetchHistoryItem)
-	registry["ClearFetchHistoryByType"] = Wrap(app.ClearFetchHistoryByType)
-	registry["AddFetchHistory"] = Wrap(app.AddFetchHistory)
+
+
+	registry["CreateM3U8File"] = Wrap(func(req CreateM3U8FileReq) (struct{}, error) {
+		err := app.CreateM3U8File(req.M3U8Name, req.OutputDir, req.FilePaths)
+		return struct{}{}, err
+	})
+
+	registry["DeleteDownloadHistoryItem"] = Wrap(func(req DeleteByIDReq) (struct{}, error) {
+		err := app.DeleteDownloadHistoryItem(req.ID)
+		return struct{}{}, err
+	})
+
+	registry["DeleteFetchHistoryItem"] = Wrap(func(req DeleteByIDReq) (struct{}, error) {
+		err := app.DeleteFetchHistoryItem(req.ID)
+		return struct{}{}, err
+	})
+
+	registry["ClearFetchHistoryByType"] = Wrap(func(req ClearFetchHistoryByTypeReq) (struct{}, error) {
+		err := app.ClearFetchHistoryByType(req.ItemType)
+		return struct{}{}, err
+	})
+
+	registry["AddFetchHistory"] = Wrap(func(item backend.FetchHistoryItem) (struct{}, error) {
+		err := app.AddFetchHistory(item)
+		return struct{}{}, err
+	})
+
+	registry["GetFileSizes"] = Wrap(func(req FilesReq) (map[string]int64, error) {
+		return app.GetFileSizes(req.Files), nil
+	})
+
+	registry["GetStreamingURLs"] = Wrap(func(req StreamingURLsReq) (string, error) {
+		return app.GetStreamingURLs(req.SpotifyTrackID, req.Region)
+	})
+
+	registry["MarkDownloadItemFailed"] = Wrap(func(req MarkDownloadItemFailedReq) (struct{}, error) {
+		app.MarkDownloadItemFailed(req.ItemID, req.ErrorMsg)
+		return struct{}{}, nil
+	})
+
+	registry["PreviewRenameFiles"] = Wrap(func(req FilesFormatReq) ([]backend.RenamePreview, error) {
+		return app.PreviewRenameFiles(req.Files, req.Format), nil
+	})
+
+	registry["RenameFilesByMetadata"] = Wrap(func(req FilesFormatReq) ([]backend.RenameResult, error) {
+		return app.RenameFilesByMetadata(req.Files, req.Format), nil
+	})
+
+	registry["RenameFileTo"] = Wrap(func(req RenameFileToReq) (struct{}, error) {
+		err := app.RenameFileTo(req.OldPath, req.NewName)
+		return struct{}{}, err
+	})
+
+	registry["SaveRecentFetches"] = Wrap(func(req SaveRecentFetchesReq) (struct{}, error) {
+		err := app.SaveRecentFetches(req.Payload)
+		return struct{}{}, err
+	})
+
+	registry["CheckAPIStatus"] = Wrap(func(req CheckAPIStatusReq) (bool, error) {
+		return app.CheckAPIStatus(req.APIType, req.APIURL), nil
+	})
+
+	registry["ListDirectoryFiles"] = Wrap(func(req ListDirectoryFilesReq) ([]backend.FileInfo, error) {
+		return app.ListDirectoryFiles(req.DirPath)
+	})
+
+	registry["GetCurrentIPInfo"] = WrapNoArgRetErr(app.GetCurrentIPInfo)
+	registry["GetRecentFetches"] = WrapNoArgRetErr(app.GetRecentFetches)
 	registry["DownloadAvatar"] = Wrap(app.DownloadAvatar)
 	registry["DownloadCover"] = Wrap(app.DownloadCover)
 	registry["DownloadGalleryImage"] = Wrap(app.DownloadGalleryImage)
 	registry["DownloadHeader"] = Wrap(app.DownloadHeader)
 	registry["DownloadLyrics"] = Wrap(app.DownloadLyrics)
 	registry["DownloadTrack"] = Wrap(app.DownloadTrack)
-	registry["GetFileSizes"] = Wrap(app.GetFileSizes)
 	registry["GetPreviewURL"] = Wrap(app.GetPreviewURL)
 	registry["GetSpotifyMetadata"] = Wrap(app.GetSpotifyMetadata)
-	registry["GetStreamingURLs"] = Wrap(app.GetStreamingURLs)
 	registry["ListAudioFilesInDir"] = Wrap(app.ListAudioFilesInDir)
-	registry["ListDirectoryFiles"] = Wrap(app.ListDirectoryFiles)
-	registry["MarkDownloadItemFailed"] = Wrap(app.MarkDownloadItemFailed)
-	registry["PreviewRenameFiles"] = Wrap(app.PreviewRenameFiles)
+
+
 	registry["ReadFileMetadata"] = Wrap(app.ReadFileMetadata)
 	registry["ReadImageAsBase64"] = Wrap(app.ReadImageAsBase64)
 	registry["ReadTextFile"] = Wrap(app.ReadTextFile)
-	registry["RenameFilesByMetadata"] = Wrap(app.RenameFilesByMetadata)
-	registry["RenameFileTo"] = Wrap(app.RenameFileTo)
-	registry["SaveSettings"] = Wrap(app.SaveSettings)
+
+
+	registry["SaveSettings"] = Wrap(func(req SaveSettingsReq) (struct{}, error) {
+		err := app.SaveSettings(req.Settings)
+		return struct{}{}, err
+	})
+
+	registry["SkipDownloadItem"] = Wrap(func(req SkipDownloadItemReq) (struct{}, error) {
+		app.SkipDownloadItem(req.ItemID, req.FilePath)
+		return struct{}{}, nil
+	})
+
 	registry["SearchSpotify"] = Wrap(app.SearchSpotify)
 	registry["SearchSpotifyByType"] = Wrap(app.SearchSpotifyByType)
-	registry["SkipDownloadItem"] = Wrap(app.SkipDownloadItem)
-	registry["UploadImage"] = Wrap(app.UploadImage)
-	registry["UploadImageBytes"] = Wrap(app.UploadImageBytes)
 	registry["GetUserHomeDir"] = Wrap(app.GetUserHomeDir)
 	registry["GetPathSeparator"] = Wrap(app.GetPathSeparator)
 
@@ -84,19 +226,20 @@ func main() {
 	registry["GetWatchlists"] = Wrap(app.GetWatchlists)
 
 	// Void input Functions (no args, returns data/error)
-	registry["CancelAllQueuedItems"] = WrapVoid(app.CancelAllQueuedItems)
+	registry["CancelAllQueuedItems"] = WrapNoArg(app.CancelAllQueuedItems)
+	registry["ClearAllDownloads"] = WrapNoArg(app.ClearAllDownloads)
+	registry["ClearCompletedDownloads"] = WrapNoArg(app.ClearCompletedDownloads)
+
+	registry["ClearDownloadHistory"] = WrapNoArgErr(app.ClearDownloadHistory)
+	registry["ClearFetchHistory"] = WrapNoArgErr(app.ClearFetchHistory)
+
+	registry["ExportFailedDownloads"] = WrapNoArgRet(app.ExportFailedDownloads)
+	registry["GetDefaults"] = WrapNoArgRet(app.GetDefaults)
+
 	registry["CheckFFmpegInstalled"] = WrapVoid(app.CheckFFmpegInstalled)
-	registry["ClearAllDownloads"] = WrapVoid(app.ClearAllDownloads)
-	registry["ClearCompletedDownloads"] = WrapVoid(app.ClearCompletedDownloads)
-	registry["ClearDownloadHistory"] = WrapVoid(app.ClearDownloadHistory)
-	registry["ClearFetchHistory"] = WrapVoid(app.ClearFetchHistory)
-	registry["ExportFailedDownloads"] = WrapVoid(app.ExportFailedDownloads)
 	registry["GetConfigPath"] = WrapVoid(app.GetConfigPath)
-	registry["GetDefaults"] = WrapVoid(app.GetDefaults)
 	registry["GetDownloadHistory"] = WrapVoid(app.GetDownloadHistory)
 	registry["GetFetchHistory"] = WrapVoid(app.GetFetchHistory)
-	registry["GetFFmpegPath"] = WrapVoid(app.GetFFmpegPath)
-	registry["GetOSInfo"] = WrapVoid(app.GetOSInfo)
 	registry["IsFFmpegInstalled"] = WrapVoid(app.IsFFmpegInstalled)
 	registry["IsFFprobeInstalled"] = WrapVoid(app.IsFFprobeInstalled)
 	registry["LoadSettings"] = WrapVoid(app.LoadSettings)
@@ -200,7 +343,7 @@ func main() {
 
 		if appPassword == "" {
 			settings["appPassword"] = req.Password
-			_, err := app.SaveSettings(SaveSettingsReq{Settings: settings})
+			err := app.SaveSettings(settings)
 			if err != nil {
 				http.Error(w, "Failed to save config", http.StatusInternalServerError)
 				return
