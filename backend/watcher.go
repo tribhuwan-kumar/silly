@@ -121,30 +121,43 @@ func (wm *WatcherManager) CheckAllPlaylists() {
 func (wm *WatcherManager) SyncPlaylist(p *WatchedPlaylist) {
 	fmt.Printf("[Watcher] Syncing playlist: %s\n", p.Name)
 
-	// Call app.GetSpotifyMetadata via the callback
 	data, err := wm.fetchMetaFunc(p.URL)
 	if err != nil {
 		fmt.Printf("[Watcher] Failed to fetch playlist %s: %v\n", p.Name, err)
 		return
 	}
 
-	// Convert the interface{} to a map to extract tracks
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("[Watcher] Failed to marshal playlist data")
-		return
+	var dataMap map[string]any
+
+	switch v := data.(type) {
+	case map[string]any:
+		dataMap = v
+	case []byte:
+		if err := json.Unmarshal(v, &dataMap); err != nil {
+			fmt.Printf("[Watcher] Failed to unmarshal []byte playlist data: %v\n", err)
+			return
+		}
+	case string:
+		if err := json.Unmarshal([]byte(v), &dataMap); err != nil {
+			fmt.Printf("[Watcher] Failed to unmarshal string playlist data: %v\n", err)
+			return
+		}
+	default:
+		jsonBytes, err := json.Marshal(v)
+		if err != nil {
+			fmt.Printf("[Watcher] Failed to marshal playlist data: %v\n", err)
+			return
+		}
+		if err := json.Unmarshal(jsonBytes, &dataMap); err != nil {
+			fmt.Printf("[Watcher] Failed to unmarshal playlist data: %v\n", err)
+			return
+		}
 	}
 
-	var dataMap map[string]interface{}
-	if err := json.Unmarshal(jsonBytes, &dataMap); err != nil {
-		fmt.Println("[Watcher] Failed to unmarshal playlist data")
-		return
-	}
-	
-	var trackList []interface{}
-	if tl, ok := dataMap["track_list"].([]interface{}); ok {
+	var trackList []any
+	if tl, ok := dataMap["track_list"].([]any); ok {
 		trackList = tl
-	} else if tl, ok := dataMap["tracks"].([]interface{}); ok {
+	} else if tl, ok := dataMap["tracks"].([]any); ok {
 		trackList = tl
 	} else {
 		fmt.Println("[Watcher] No tracks found in playlist data")
@@ -152,8 +165,8 @@ func (wm *WatcherManager) SyncPlaylist(p *WatchedPlaylist) {
 	}
 
 	addedCount := 0
-	for _, tInterface := range trackList {
-		track, ok := tInterface.(map[string]interface{})
+	for _, t := range trackList {
+		track, ok := t.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -167,15 +180,15 @@ func (wm *WatcherManager) SyncPlaylist(p *WatchedPlaylist) {
 		var artistName string
 		if artists, ok := track["artists"].(string); ok {
 			artistName = artists
-		} else if artistsList, ok := track["artists"].([]interface{}); ok && len(artistsList) > 0 {
-			if firstArtist, ok := artistsList[0].(map[string]interface{}); ok {
+		} else if artistsList, ok := track["artists"].([]any); ok && len(artistsList) > 0 {
+			if firstArtist, ok := artistsList[0].(map[string]any); ok {
 				artistName, _ = firstArtist["name"].(string)
 			}
 		}
 
 		albumName, _ := track["album_name"].(string)
 		if albumName == "" {
-			if albObj, ok := track["album"].(map[string]interface{}); ok {
+			if albObj, ok := track["album"].(map[string]any); ok {
 				albumName, _ = albObj["name"].(string)
 			}
 		}
@@ -185,9 +198,9 @@ func (wm *WatcherManager) SyncPlaylist(p *WatchedPlaylist) {
 			coverURL = imgs
 		} else if cover, ok := track["cover_url"].(string); ok {
 			coverURL = cover
-		} else if albObj, ok := track["album"].(map[string]interface{}); ok {
-			if imgsArr, ok := albObj["images"].([]interface{}); ok && len(imgsArr) > 0 {
-				if imgObj, ok := imgsArr[0].(map[string]interface{}); ok {
+		} else if albObj, ok := track["album"].(map[string]any); ok {
+			if imgsArr, ok := albObj["images"].([]any); ok && len(imgsArr) > 0 {
+				if imgObj, ok := imgsArr[0].(map[string]any); ok {
 					coverURL, _ = imgObj["url"].(string)
 				}
 			}
@@ -198,7 +211,7 @@ func (wm *WatcherManager) SyncPlaylist(p *WatchedPlaylist) {
 			addedCount++
 		}
 	}
-	
+
 	fmt.Printf("[Watcher] Sent %d tracks to queue.\n", addedCount)
 
 	wm.Mu.Lock()

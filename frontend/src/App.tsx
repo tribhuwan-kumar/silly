@@ -6,6 +6,7 @@ import { Search, X, ArrowUp } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSettings, getSettingsWithDefaults, loadSettings, saveSettings, applyThemeMode, applyFont } from "@/lib/settings";
 import { applyTheme } from "@/lib/themes";
+import { v4 as uuidv4 } from 'uuid';
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 import { TitleBar } from "@/components/TitleBar";
 import { Sidebar, type PageType } from "@/components/Sidebar";
@@ -305,7 +306,7 @@ function App() {
             const newItem: HistoryItem = {
                 ...item,
                 url: normalizedUrl,
-                id: crypto.randomUUID(),
+                id: uuidv4(),
                 timestamp: Date.now(),
             };
             const updated = normalizeHistoryItems([newItem, ...filtered]);
